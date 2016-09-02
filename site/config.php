@@ -36,7 +36,7 @@ if(!defined("PROCESSWIRE")) die();
  * @var bool
  *
  */
-$config->debug = false;
+$config->debug = true;
 
 
 /*** INSTALLER CONFIG ********************************************************************/
