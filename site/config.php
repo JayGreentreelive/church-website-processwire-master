@@ -78,5 +78,5 @@ $config->timezone = 'America/New_York';
  * Installer: HTTP Hosts Whitelist
  *
  */
-$config->httpHosts = array('crosspointchurch.church');
+$config->httpHosts = array('thursdaychurch.herokuapp.com','dev.thursdaychurch.org');
 
