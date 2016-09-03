@@ -1,8 +1,13 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
- * Class NullField
- * 
+ * ProcessWire NullField
+ *
+ * Represents a Field object that doesn't exist. 
+ *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
+ * https://processwire.com
+ *
  */
 
 class NullField extends Field {

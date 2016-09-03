@@ -1,20 +1,45 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Pageimage
  *
- * Represents a single image item attached to a page, typically via a FieldtypeImage field.
+ * #pw-summary Represents an image item attached to a page, typically via an Image Fieldtype. 
+ * #pw-summary-variations A variation refers to an image that is based upon another (like a resized or cropped version for example). 
+ * #pw-order-groups common,resize-and-crop,variations,other
+ * #pw-body = 
+ * Pageimage objects are usually contained by a `Pageimages` object, which is a type of `Pagefiles` and `WireArray`. 
+ * In addition to the methods and properties below, you'll also want to look at `Pagefile` which this class inherits
+ * several important methods and properties from. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * ~~~~~
+ * // Example of outputting a thumbnail gallery of Pageimage objects
+ * foreach($page->images as $image) {
+ *   // $image and $thumb are both Pageimage objects
+ *   $thumb = $image->size(200, 200);    
+ *   echo "<a href='$image->url'>"; 
+ *   echo "<img src='$thumb->url' alt='$image->description' />";
+ *   echo "</a>";
+ * }
+ * ~~~~~
+ * #pw-body
  * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
+ * @property int $width Width of image, in pixels.
+ * @property int $height Height of image, in pixels.
+ * @property int $hidpiWidth HiDPI width of image, in pixels. #pw-internal
+ * @property int $hidpiHeight HiDPI heigh of image, in pixels. #pw-internal
+ * @property string $error Last image resizing error message, when applicable. #pw-group-resize-and-crop
+ * @property Pageimage $original Reference to original $image, if this is a resized version. #pw-group-variations
+ * @property string $url
+ * @property string $basename
+ * @property string $filename
  * 
- * @property int $width Width of image, in pixels
- * @property int $height Height of image, in pixels
- * @property Pageimage $original Reference to original $image, if this is a resized version.
+ * @method bool|array isVariation($basename, $allowSelf = false)
+ * @method Pageimage crop($x, $y, $width, $height, $options = array())
+ * @method array rebuildVariations($mode = 0, array $suffix = array(), array $options = array())
+ * @method install($filename)
  *
  */
 
@@ -22,6 +47,8 @@ class Pageimage extends Pagefile {
 
 	/**
 	 * Reference to the collection of Pageimages that this Pageimage belongs to
+	 * 
+	 * @var Pageimages
 	 *
 	 */
 	protected $pageimages; 
@@ -30,6 +57,8 @@ class Pageimage extends Pagefile {
 	 * Reference to the original image this variation was created from
 	 *
 	 * Applicable only if this image is a variation (resized version). It will be null in all other instances. 
+	 * 
+	 * @var Pageimage
 	 *
 	 */
 	protected $original = null;
@@ -47,6 +76,8 @@ class Pageimage extends Pagefile {
 	 *
 	 * Don't reference this directly, because it won't be loaded unless requested, instead use the getImageInfo() method
 	 *
+	 * @var array
+	 * 
 	 */
 	private $imageInfo = array(
 		'width' => 0, 
@@ -55,6 +86,8 @@ class Pageimage extends Pagefile {
 
 	/**
 	 * Last size error, if one occurred. 
+	 * 
+	 * @var string
 	 *
 	 */
 	protected $error = '';
@@ -76,19 +109,26 @@ class Pageimage extends Pagefile {
 
 	/**
 	 * When a Pageimage is cloned, we reset it's width and height to force them to reload in the clone
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function __clone() {
 		$this->imageInfo['width'] = 0; 
-		$this->imageInfo['height'] = 0; 
+		$this->imageInfo['height'] = 0;
+		parent::__clone();
 	}
 
 	/**
-	 * Return the web accessible URL to this Pagefile
+	 * Return the web accessible URL to this image file
+	 * 
+	 * #pw-hooks
+	 * 
+	 * @return string
 	 *
 	 */
 	public function url() {
-		if(self::isHooked('Pagefile::url()') || self::isHooked('Pageimage::url()')) { 
+		if($this->wire('hooks')->isHooked('Pagefile::url()') || $this->wire('hooks')->isHooked('Pageimage::url()')) { 
 			return $this->__call('url', array()); 
 		} else { 
 			return $this->___url();
@@ -96,11 +136,15 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Returns the disk path to the Pagefile
+	 * Returns the full disk path to the image file
+	 * 
+	 * #pw-hooks
+	 * 
+	 * @return string
 	 *
 	 */
 	public function filename() {
-		if(self::isHooked('Pagefile::filename()') || self::isHooked('Pageimage::filename()')) { 
+		if($this->wire('hooks')->isHooked('Pagefile::filename()') || $this->wire('hooks')->isHooked('Pageimage::filename()')) { 
 			return $this->__call('filename', array()); 
 		} else { 
 			return $this->___filename();
@@ -108,12 +152,14 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Returns array of suffixes for this file or true/false if this file has the given suffix
+	 * Returns array of suffixes for this file, or true/false if this file has the given suffix.
 	 * 
 	 * When providing a suffix, this method can be thought of: hasSuffix(suffix)
 	 * 
+	 * #pw-group-other
+	 * 
 	 * @param string $s Optionally provide suffix to return true/false if file has the suffix
-	 * @return array|bool 
+	 * @return array|bool Returns array of suffixes, or true|false if given a suffix in the arguments.
 	 * 
 	 */
 	public function suffix($s = '') {
@@ -126,15 +172,9 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Returns the basename of this Pagefile
-	 *
-	 */
-	public function basename() {
-		return parent::get('basename'); 
-	}
-
-	/**
 	 * Get a property from this Pageimage
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string $key
 	 * @return mixed
@@ -167,7 +207,12 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Gets the image information with PHP's getimagesize function and caches the result
+	 * Gets the image information with PHP’s getimagesize function and caches the result
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param bool $reset
+	 * @return array
 	 * 
 	 */
 	public function getImageInfo($reset = false) {
@@ -178,14 +223,18 @@ class Pageimage extends Pagefile {
 
 		if($checkImage) { 
 			if($this->ext == 'svg') {
-				if($xml = @file_get_contents($this->filename)) {
+				$xml = @file_get_contents($this->filename);
+				if($xml) {
 					$a = @simplexml_load_string($xml)->attributes();
 					$this->imageInfo['width'] = (int) $a->width > 0 ? (int) $a->width : '100%';
 					$this->imageInfo['height'] = (int) $a->height > 0 ? (int) $a->height : '100%';
 				}
-			} else if($info = @getimagesize($this->filename)) {
-				$this->imageInfo['width'] = $info[0]; 
-				$this->imageInfo['height'] = $info[1]; 
+			} else {
+				$info = @getimagesize($this->filename);
+				if($info) {
+					$this->imageInfo['width'] = $info[0];
+					$this->imageInfo['height'] = $info[1];
+				}
 			}
 		}
 
@@ -193,53 +242,99 @@ class Pageimage extends Pagefile {
 	}
 	
 	/**
-	 * Return a Pageimage object sized/cropped to the specified dimensions. 
+	 * Return an image (Pageimage) sized/cropped to the specified dimensions. 
+	 * 
+	 * `$thumb = $image->size($width, $height, $options);`
+	 * 
+	 * The default behavior of this method is to simply create and return a new resized version of the image,
+	 * leaving the original in tact. Width and height of the target size are the the first two arguments. 
+	 * The third argument called `$options` enables you to modify the default behavior of the size() method 
+	 * in various ways. This method only creates the newly sized image once, and then it caches it. Future 
+	 * calls simply refer back to the previously resized image. 
+	 * 
+	 * ~~~~~
+	 * // Get an image to resize
+	 * $image = $page->images->first();
+	 * 
+	 * // Create 400x300 thumbnail cropped to center
+	 * $thumb = $image->size(400, 300); 
+	 * 
+	 * // Create thumbnail with cropping to top
+	 * $thumb = $image->size(400, 300, 'north'); 
+	 * 
+	 * // Create thumbnail while specifying $options
+	 * $thumb = $image->size(400, 300, [
+	 *   'cropping' => 'north',
+	 *   'quality' => 60, 
+	 *   'upscaling' => false,
+	 *   'sharpening' => 'medium'
+	 * ]); 
+	 * 
+	 * // Output thumbnail
+	 * echo "<img src='$thumb->url' />";
+	 * ~~~~~
+	 * 
+	 * **About the $options argument**
+	 * 
+	 * - If given a *string*, it is assumed to be the value for the "cropping" option. 
+	 * - If given an *integer*, it is assumed you are specifying a "quality" value (1-100). 
+	 * - If given a *boolean*, it is assumed you are specifying whether or not you want to allow "upscaling".
+	 * - If given an *array*, you may specify any of the options below together: 
+	 * 
+	 * **All available $options**
+	 * 
+	 *  - `quality` (int): Quality setting 1-100 (default=90, or as specified in /site/config.php).
+	 *  - `upscaling` (bool): Allow image to be upscaled? (default=true).
+	 *  - `cropping` (string|bool): Cropping mode, see possible values in "cropping" section below (default=center).
+	 *  - `suffix` (string|array): Suffix word to identify the new image, or use array of words for multiple (default=none).
+	 *  - `forceNew` (bool): Force re-creation of the image even if it already exists? (default=false).
+	 *  - `sharpening` (string): Sharpening mode: "none", "soft", "medium", or "strong" (default=soft).
+	 *  - `autoRotation` (bool): Automatically correct rotation of images that provide this info? (default=true)
+	 *  - `rotate` (int): Rotate the image this many degrees, specify one of: 0, -270, -180, -90, 90, 180, or 270 (default=0).
+	 *  - `flip` (string): To flip, specify either "vertical" or "horizontal" (default=none).
+	 *  - `hidpi` (bool): Use HiDPI/retina pixel doubling? (default=false).
+	 *  - `hidpiQuality` (bool): Quality setting for HiDPI (default=40, typically lower than regular quality setting). 
+	 *  - `cleanFilename` (bool): Clean filename of historical resize information for shorter filenames? (default=false).
+	 * 
+	 * **Possible values for "cropping" option**  
+	 * 
+	 *  - `center` (string): to crop to center of image, default behavior.
+	 *  - `x111y222` (string): to crop by pixels, 111px from left and 222px from top (replacing 111 and 222 with your values).
+	 *  - `north` (string): Crop North (top), may also be just "n".
+	 *  - `northwest` (string): Crop from Northwest (top left), may also be just "nw".
+	 *  - `northeast` (string): Crop from Northeast (top right), may also be just "ne".
+	 *  - `south` (string): Crop South (bottom), may also be just "s".
+	 *  - `southwest` (string): Crop Southwest (bottom left), may also be just "sw".
+	 *  - `southeast` (string): Crop Southeast (bottom right), may also be just "se".
+	 *  - `west` (string): Crop West (left), may also be just "w".
+	 *  - `east` (string): Crop East (right), may alos be just "e".
+	 *  - `blank` (string): Specify a blank string to disallow cropping during resize.
 	 *
-	 * The 3rd argument $options may be an array, string, integer or boolean. When an array, you may specify multiple options
-	 * to override. These include: 'quality', 'upscaling', and 'cropping'. When a string, it is assumed you are specifying
-	 * a cropping value. When an integer, it is assumed you are specifying a quality value. When a boolean, it is assumed you
-	 * are specifying an 'upscaling' toggle on/off. 
+	 * **Note about "quality" and "upscaling" options** 
+	 * 
+	 * ProcessWire doesn't keep separate copies of images with different "quality" or "upscaling" values. 
+	 * If you change these and a variation image at the existing dimensions already exists, then you'll still get the old version. 
+	 * To clear out an old version of an image, use the `Pageimage::removeVariations()` method in this class before calling 
+	 * size() with new quality or upscaling settings.
+	 * 
+	 * #pw-group-resize-and-crop
+	 * #pw-group-common
+	 * #pw-hooks
 	 *
-	 * Cropping may be specified either in the options array with the 'cropping' index, or via a 3rd string param to the function.
-	 * Possible values for 'cropping' include: northwest, north, northeast, west, center, east, southwest, south, southeast.
-	 * If you prefer, you can specify shorter versions like 'nw' for 'northwest', or 's' for 'south', etc. 
-	 * If cropping is not specified, then 'center' is assumed. 
-	 * To completely disable cropping, specify a blank string.
-	 *
-	 * Quality may be specified either in the options array with the 'quality' index, or via a 3rd integer param to the function.
-	 * Possible values for 'quality' are 1 to 100. Default is 90. Important: See the PLEASE NOTE section below.
-	 *
-	 * Upscaling may be specified either in the options array with the 'upscaling' index, or via a 3rd boolean param to the function.
-	 * Possible values for 'upscaling' are TRUE and FALSE. Default is TRUE. Important: See the PLEASE NOTE section below.
-	 *
-	 * PLEASE NOTE: ProcessWire doesn't keep separate copies of images with different 'quality' or 'upscaling' values. If you change
-	 * these and a variation image at the existing dimensions already exists, then you'll still get the old version. 
-	 * To clear out an old version of an image, use the removeVariations() method in this class before calling size() with new 
-	 * quality or upscaling settings.
-	 *
-	 * @param int $width
-	 * @param int $height
-	 * @param array|string|int $options Array of options (or selector string) to override default behavior: 
-	 * 	- quality=90 (quality setting 1-100)
-	 * 	- upscaling=true (allow image to be upscaled?)
-	 * 	- cropping=center (cropping mode, see ImageSizer class for options)
-	 * 	- suffix='word' (your suffix word in fieldName format, or use array of words for multiple)
-	 * 	- forceNew=true (force re-creation of the image?)
-	 * 	- sharpening=soft (specify: none, soft, medium, strong)
-	 * 	- autoRotation=true (automatically correct rotation of images that provide the info)
-	 * 	- rotate=0 (Specify degrees, one of: -270, -180, -90, 90, 180, 270)
-	 * 	- flip='' (To flip, specify either 'vertical' or 'horizontal')
-	 * 	- hidpi=false (specify true to enable hidpi/retuna/pixel doubling)
-	 * 	- cleanFilename=false (clean filename of historical resize information for shorter filenames)
-	 *	Or you may specify a string|bool with with 'cropping' value if you don't need to combine with other options.
-	 *	Or you may specify an integer with 'quality' value if you don't need to combine with other options.
-	 * 	Or you may specify a boolean with 'upscaling' value if you don't need to combine with other options.
-	 * @return Pageimage
+	 * @param int $width Target width of new image
+	 * @param int $height Target height of new image
+	 * @param array|string|int $options Array of options to override default behavior: 
+	 *  - Specify `array` of options as indicated in the section above. 
+	 *  - Or you may specify type `string` containing "cropping" value.
+	 *  - Or you may specify type `int` containing "quality" value.
+	 *  - Or you may specify type `bool` containing "upscaling" value.
+	 * @return Pageimage Returns a new Pageimage object that is a variation of the original. 
+	 *  If the specified dimensions/options are the same as the original, then the original then the original will be returned.
 	 *
 	 */
 	public function size($width, $height, $options = array()) {
 
-		if(self::isHooked('Pageimage::size()')) {
+		if($this->wire('hooks')->isHooked('Pageimage::size()')) {
 			return $this->__call('size', array($width, $height, $options)); 
 		} else { 
 			return $this->___size($width, $height, $options);
@@ -251,6 +346,8 @@ class Pageimage extends Pagefile {
 	 *	
 	 * See comments for size() method above.
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param int $width
 	 * @param int $height
 	 * @param array|string|int $options
@@ -258,7 +355,7 @@ class Pageimage extends Pagefile {
 	 *
 	 */
 	protected function ___size($width, $height, $options) {
-
+	
 		// I was getting unnecessarily resized images without this code below,
 		// but this may be better solved in ImageSizer?
 		/*
@@ -287,7 +384,11 @@ class Pageimage extends Pagefile {
 				$options = array();
 			}
 		}
-
+		
+		// originally requested options
+		$requestOptions = $options;
+	
+		// default options
 		$defaultOptions = array(
 			'upscaling' => true,
 			'cropping' => true,
@@ -302,13 +403,14 @@ class Pageimage extends Pagefile {
 			);
 
 		$this->error = '';
-		$configOptions = wire('config')->imageSizerOptions; 
+		$debug = $this->wire('config')->debug;
+		$configOptions = $this->wire('config')->imageSizerOptions; 
 		if(!is_array($configOptions)) $configOptions = array();
 		$options = array_merge($defaultOptions, $configOptions, $options); 
 
 		$width = (int) $width;
 		$height = (int) $height;
-		
+
 		if(is_string($options['cropping'])
 			&& strpos($options['cropping'], 'x') === 0
 			&& preg_match('/^x(\d+)[yx](\d+)/', $options['cropping'], $matches)) {
@@ -318,7 +420,6 @@ class Pageimage extends Pagefile {
 		} else {
 			$crop = ImageSizer::croppingValueStr($options['cropping']);
 		}
-		
 	
 		if(!is_array($options['suffix'])) {
 			// convert to array
@@ -348,7 +449,9 @@ class Pageimage extends Pagefile {
 
 		//$basename = $this->pagefiles->cleanBasename($this->basename(), false, false, false);
 		// cleanBasename($basename, $originalize = false, $allowDots = true, $translate = false) 
-		$basename = basename($this->basename(), "." . $this->ext());        // i.e. myfile
+		$originalName = $this->basename();
+		$basename = basename($originalName, "." . $this->ext());        // i.e. myfile
+		$originalSize = $debug ? @filesize($this->filename) : 0;
 		if($options['cleanFilename'] && strpos($basename, '.') !== false) {
 			$basename = substr($basename, 0, strpos($basename, '.')); 
 		}
@@ -363,19 +466,52 @@ class Pageimage extends Pagefile {
 			if(file_exists($filenameUnvalidated)) @unlink($filenameUnvalidated);
 			if(@copy($this->filename(), $filenameUnvalidated)) {
 				try { 
-					$sizer = new ImageSizer($filenameUnvalidated);
-					$sizer->setOptions($options);
+					
+					$timer = $debug ? Debug::timer() : null;
+					
+					/** @var ImageSizer $sizer */
+					$sizer = $this->wire(new ImageSizer($filenameUnvalidated, $options));
+					
+					/** @var ImageSizerEngine $engine */
+					$engine = $sizer->getEngine();
+					
+					// allow for ImageSizerEngine module settings for quality and sharpening to override system defaults
+					// when they are not specified as an option to this resize() method
+					$engineConfigData = $engine->getConfigData();
+					if(!empty($engineConfigData)) {
+						if(!empty($engineConfigData['quality']) && empty($options['hidpi']) && empty($requestOptions['quality'])) {
+							$engine->setQuality($engineConfigData['quality']);
+							$options['quality'] = $engineConfigData['quality'];
+						}
+						if(!empty($engineConfigData['sharpening']) && empty($requestOptions['sharpening'])) {
+							$engine->setSharpening($engineConfigData['sharpening']);
+							$options['sharpening'] = $engineConfigData['sharpening'];
+						}
+					}
+					
 					if($sizer->resize($width, $height) && @rename($filenameUnvalidated, $filenameFinal)) {
-						wireChmod($filenameFinal); 
+						$this->wire('files')->chmod($filenameFinal);
 					} else {
 						$this->error = "ImageSizer::resize($width, $height) failed for $filenameUnvalidated";
 					}
-				} catch(Exception $e) {
+
+					$timer = $debug ? Debug::timer($timer) : null;
+					if($debug) $this->wire('log')->save('image-sizer',
+						str_replace('ImageSizerEngine', '', $sizer->getEngine()) . ' ' . 
+						($this->error ? "FAILED Resize: " : "Resized: ") . 
+						"$originalName => " . 
+						basename($filenameFinal) . " " .
+						"({$width}x{$height}) $timer secs " . 
+						"$originalSize => " . filesize($filenameFinal) . " bytes " . 
+						"(quality=$options[quality], sharpening=$options[sharpening]) "
+					);
+					
+				} catch(\Exception $e) {
 					$this->trackException($e, false); 
 					$this->error = $e->getMessage(); 
 				}
 			} else {
-				$this->error("Unable to copy $this->filename => $filenameUnvalidated"); 
+				$this->error = "Unable to copy $this->filename => $filenameUnvalidated"; 
 			}
 		}
 
@@ -390,11 +526,12 @@ class Pageimage extends Pagefile {
 
 			// write an invalid image so it's clear something failed
 			// todo: maybe return a 1-pixel blank image instead?
-			$data = "This is intentionally invalid image data.\n$this->error";
-			if(file_put_contents($filenameFinal, $data) !== false) wireChmod($filenameFinal);
+			$data = "This is intentionally invalid image data.\n";
+			if(file_put_contents($filenameFinal, $data) !== false) $this->wire('files')->chmod($filenameFinal);
 
 			// we also tell PW about it for logging and/or admin purposes
 			$this->error($this->error); 
+			if($debug) $this->wire('log')->save('image-sizer', "$filenameFinal - $this->error");
 		}
 
 		$pageimage->setFilename($filenameFinal); 	
@@ -405,6 +542,8 @@ class Pageimage extends Pagefile {
 	
 	/**
 	 * Same as size() but with width/height assumed to be hidpi width/height
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param $width
 	 * @param $height
@@ -418,13 +557,26 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Create a crop and return new Pageimage
+	 * Create a crop and return it as a new Pageimage.
+	 * 
+	 * ~~~~~
+	 * // Create a crop starting 100 pixels from left, 200 pixels from top
+	 * // at 150 pixels wide and 100 pixels tall
+	 * $image = $page->images->first();
+	 * $crop = $image->crop(100, 200, 150, 100); 
+	 * 
+	 * // Output the crop
+	 * echo "<img src='$crop->url' />";
+	 * ~~~~~
+	 * 
+	 * #pw-group-resize-and-crop
 	 * 
 	 * @param int $x Starting X position (left) in pixels
 	 * @param int $y Starting Y position (top) in pixels
 	 * @param int $width Width of crop in pixels
 	 * @param int $height Height of crop in pixels
-	 * @param array $options See options array for size() method. Avoid setting crop properties here since we are overriding them.
+	 * @param array $options See options array for `Pageimage::size()` method. 
+	 *   Avoid setting crop properties in $options since we are overriding them.
 	 * @return Pageimage
 	 *
 	 */
@@ -449,14 +601,25 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Multipurpose: return the width of the Pageimage OR return an image sized with a given width (and proportional height)
+	 * Return the width of this image OR return an image sized with a given width (and proportional height).
 	 *
-	 * If given a width, it'll return a new Pageimage object sized to that width. 
-	 * If not given a width, it'll return the width of this Pageimage
+	 * - If given a width, it'll return a new Pageimage object sized to that width. 
+	 * - If not given a width, it'll return the current width of this Pageimage.
+	 * 
+	 * #pw-group-resize-and-crop
+	 * #pw-group-common
+	 * 
+	 * ~~~~~
+	 * // Get width of image
+	 * $px = $image->width();
+	 * 
+	 * // Create a new variation at 200px width
+	 * $thumb = $image->width(200); 
+	 * ~~~~~
 	 *
-	 * @param int $n Optional width
-	 * @param array|string|int|bool $options Optional options (see size function)
-	 * @return int|Pageimage
+	 * @param int $n Optional width if you are creating a new size. 
+	 * @param array|string|int|bool $options See `Pageimage::size()` $options argument for details. 
+	 * @return int|Pageimage Returns width (in px) when given no arguments, or Pageimage when given a width argument.
 	 *
 	 */
 	public function width($n = 0, $options = array()) {
@@ -466,14 +629,25 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Multipurpose: return the height of the Pageimage OR return an image sized with a given height (and proportional width)
+	 * Return the height of this image OR return an image sized with a given height (and proportional width).
 	 *
-	 * If given a height, it'll return a new Pageimage object sized to that height. 
-	 * If not given a height, it'll return the height of this Pageimage
+	 * - If given a height, it'll return a new Pageimage object sized to that height. 
+	 * - If not given a height, it'll return the height of this Pageimage.
+	 * 
+	 * #pw-group-resize-and-crop
+	 * #pw-group-common
+	 * 
+	 * ~~~~~
+	 * // Get height of image
+	 * $px = $image->height();
 	 *
-	 * @param int $n Optional height
-	 * @param array|string|int|bool $options Optional options (see size function)
-	 * @return int|Pageimage
+	 * // Create a new variation at 200px height
+	 * $thumb = $image->height(200);
+	 * ~~~~~
+	 *
+	 * @param int $n Optional height if you are creating a new size.
+	 * @param array|string|int|bool $options See `Pageimage::size()` $options argument for details. 
+	 * @return int|Pageimage Returns height (in px) when given no arguments, or Pageimage when given a height argument.
 	 *
 	 */
 	public function height($n = 0, $options = array()) {
@@ -485,8 +659,10 @@ class Pageimage extends Pagefile {
 	/**
 	 * Return width for hidpi/retina use, or resize an image for desired hidpi width
 	 * 
-	 * If the $width argument is ommitted or provided as a float, hidpi width (int) is returned (default scale=0.5)
+	 * If the $width argument is omitted or provided as a float, hidpi width (int) is returned (default scale=0.5)
 	 * If $width is provided (int) then a new Pageimage is returned at that width x 2 (for hidpi use).
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param int|float $width Specify int to return resized image for hidpi, or float (or omit) to return current width at hidpi.
 	 * @param array $options Optional options for use when resizing, see size() method for details.
@@ -507,6 +683,7 @@ class Pageimage extends Pagefile {
 			if(!is_array($options)) $options = array();
 			return $this->hidpiSize((int) $width, 0, $options);
 		}
+		return 0; // not possible to reach, but pleases the inspection
 	}
 
 	/**
@@ -514,6 +691,8 @@ class Pageimage extends Pagefile {
 	 *
 	 * If the $height argument is omitted or provided as a float, hidpi height (int) is returned (default scale=0.5)
 	 * If $height is provided (int) then a new Pageimage is returned at that height x 2 (for hidpi use).
+	 * 
+	 * #pw-internal
 	 *
 	 * @param int|float $height Specify int to return resized image for hidpi, or float (or omit) to return current width at hidpi.
 	 * @param array|int $options Optional options for use when resizing, see size() method for details.
@@ -534,19 +713,22 @@ class Pageimage extends Pagefile {
 			if(!is_array($options)) $options = array();
 			return $this->hidpiSize(0, (int) $height, $options);
 		}
+		return 0; // not possible to reach but pleases the inspection
 	}
 
 	/**
-	 * Return an image no larger than the given width
+	 * Return an image no larger than the given width.
 	 *
 	 * If source image is equal to or smaller than the requested dimension, 
 	 * then it will remain that way and the source image is returned (not a copy).
 	 * 
 	 * If the source image is larger than the requested dimension, then a new copy
 	 * will be returned at the requested dimension.
+	 * 
+	 * #pw-group-resize-and-crop
 	 *
  	 * @param int $n Maximum width
-	 * @param array $options Optional options array
+	 * @param array $options See `Pageimage::size()` method for options
 	 * @return Pageimage
 	 *
 	 */
@@ -557,16 +739,18 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Return an image no larger than the given height
+	 * Return an image no larger than the given height.
 	 *
 	 * If source image is equal to or smaller than the requested dimension, 
 	 * then it will remain that way and the source image is returned (not a copy).
 	 * 
 	 * If the source image is larger than the requested dimension, then a new copy
 	 * will be returned at the requested dimension.
+	 * 
+	 * #pw-group-resize-and-crop
 	 *
- 	 * @param int $n Maximum width
-	 * @param array $options Optional options array
+ 	 * @param int $n Maximum height
+	 * @param array $options See `Pageimage::size()` method for options
 	 * @return Pageimage
 	 *
 	 */
@@ -579,9 +763,11 @@ class Pageimage extends Pagefile {
 	/**
 	 * Return an image no larger than the given width and height
 	 * 
+	 * #pw-group-resize-and-crop
+	 * 
 	 * @param int $width Max allowed width
 	 * @param int $height Max allowed height
-	 * @param array $options Optional options array
+	 * @param array $options See `Pageimage::size()` method for options
 	 * @return Pageimage
 	 * 
 	 */
@@ -604,28 +790,32 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Get all size variations of this Pageimage 
+	 * Get all size variations of this image
 	 *
-	 * This is useful after a delete of an image (for example). This method can be used to track down all the child files that also need to be deleted. 
+	 * This is useful after a delete of an image (for example). This method can be used to track down all the 
+	 * child files that also need to be deleted. 
+	 * 
+	 * #pw-group-variations
 	 *
-	 * @param array $options One or more options of: 
-	 * 	- info (bool): when true, method returns variation info arrays rather than Pageimage objects
-	 * 	- width (int): only variations with given width will be returned
-	 * 	- height (int): only variations with given height will be returned
-	 * 	- width>= (int): only variations with width greater than or equal to given will be returned
-	 * 	- height>= (int): only variations with height greater than or equal to given will be returned
-	 * 	- width<= (int): only variations with width less than or equal to given will be returned
-	 * 	- height<= (int): only variations with height less than or equal to given will be returned
-	 * 	- suffix (string): only variations having the given suffix will be returned
-	 * @return Pageimages|array Returns Pageimages array of Pageimage instances. Only returns regular array if $options[info] is true.
+	 * @param array $options Optional, one or more options in an associative array of the following: 
+	 * 	- `info` (bool): when true, method returns variation info arrays rather than Pageimage objects
+	 * 	- `width` (int): only variations with given width will be returned
+	 * 	- `height` (int): only variations with given height will be returned
+	 * 	- `width>=` (int): only variations with width greater than or equal to given will be returned
+	 * 	- `height>=` (int): only variations with height greater than or equal to given will be returned
+	 * 	- `width<=` (int): only variations with width less than or equal to given will be returned
+	 * 	- `height<=` (int): only variations with height less than or equal to given will be returned
+	 * 	- `suffix` (string): only variations having the given suffix will be returned
+	 * @return Pageimages|array Returns Pageimages array of Pageimage instances. 
+	 *  Only returns regular array if provided `$options['info']` is true.
 	 *
 	 */
 	public function getVariations(array $options = array()) {
 
 		if(!is_null($this->variations)) return $this->variations; 
 
-		$variations = new Pageimages($this->pagefiles->page); 
-		$dir = new DirectoryIterator($this->pagefiles->path); 
+		$variations = $this->wire(new Pageimages($this->pagefiles->page)); 
+		$dir = new \DirectoryIterator($this->pagefiles->path); 
 		$infos = array();
 
 		foreach($dir as $file) {
@@ -668,26 +858,30 @@ class Pageimage extends Pagefile {
 	/**
 	 * Rebuilds variations of this image
 	 * 
-	 * By default, this excludes crops and images with suffixes, but can be 
-	 * overridden with the $mode and $suffix arguments. 
+	 * By default, this excludes crops and images with suffixes, but can be overridden with the `$mode` and `$suffix` arguments. 
+	 * 
+	 * **Options for $mode argument**
+	 * 
+	 * - `0` (int): Rebuild only non-suffix, non-crop variations, and those w/suffix specified in $suffix argument. ($suffix is INCLUSION list)
+	 * - `1` (int): Rebuild all non-suffix variations, and those w/suffix specifed in $suffix argument. ($suffix is INCLUSION list)
+	 * - `2` (int): Rebuild all variations, except those with suffix specified in $suffix argument. ($suffix is EXCLUSION list)
+	 * - `3` (int): Rebuild only variations specified in the $suffix argument. ($suffix is ONLY-INCLUSION list)
 	 * 
 	 * Mode 0 is the only truly safe mode, as in any other mode there are possibilities that the resulting
-	 * rebuild of the variation may not be exactly what was intended. The issues with other modules primarily
+	 * rebuild of the variation may not be exactly what was intended. The issues with other modes primarily
 	 * arise when the suffix means something about the technical details of the produced image, or when 
-	 * rebuilding variations that include crops from an original image that has changed dimensions or crops. 
+	 * rebuilding variations that include crops from an original image that has since changed dimensions or crops. 
+	 *
+	 * #pw-group-variations
 	 * 
-	 * @param int $mode Can be any one of the following (default is 0): 
-	 * 	- 0: rebuild only non-suffix, non-crop variations, and those w/suffix specified in $suffix argument. ($suffix is INCLUSION list)
-	 * 	- 1: rebuild all non-suffix variations, and those w/suffix specifed in $suffix argument. ($suffix is INCLUSION list)
-	 * 	- 2: rebuild all variations, except those with suffix specified in $suffix argument. ($suffix is EXCLUSION list)
-	 * 	- 3: rebuild only variations specified in the $suffix argument. ($suffix is ONLY-INCLUSION list)
+	 * @param int $mode See the options for $mode argument above (default=0).
 	 * @param array $suffix Optional argument to specify suffixes to include or exclude (according to $mode). 
-	 * @param array $options Options for ImageSizer (see $options argument for size() method). 
-	 * @return array of format array(
-	 * 	'rebuilt' => array(file1, file2, file3, etc.), 
-	 * 	'skipped' => array(file1, file2, file3, etc.), 
-	 * 	'errors' => array(file1, file2, file3, etc.); 
-	 * 	);
+	 * @param array $options See $options for `Pageimage::size()` for details. 
+	 * @return array Returns an associative array with with the following indexes: 
+	 *  - `rebuilt` (array): Names of files that were rebuilt.
+	 *  - `skipped` (array): Names of files that were skipped. 
+	 *  - `errors` (array): Names of files that had errors. 
+	 *  - `reasons` (array): Reasons why files were skipped or had errors, associative array indexed by file name. 
 	 * 
 	 */
 	public function ___rebuildVariations($mode = 0, array $suffix = array(), array $options = array()) {
@@ -779,25 +973,29 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Given a filename, return array of info if this is a variation for this instance's file, false if not
+	 * Given a file name (basename), return array of info if this is a variation for this instance’s file, or false if not.
 	 *
 	 * Returned array includes the following indexes: 
-	 * - original: Original basename
-	 * - url: URL to image
-	 * - path: Full path + filename to image
-	 * - width: Specified width
-	 * - height: Specified height
-	 * - crop: Cropping info string or blank if none
-	 * - suffix: array of suffixes
-	 * - suffixAll: (!) contains all suffixes including among parent variations
-	 * - parent: (!) variation info array of direct parent variation file
 	 * 
-	 * Items above identified with (!) are only present if variation is based on another variation, and thus
-	 * has a parent variation image between it and the original. 
+	 * - `original` (string): Original basename
+	 * - `url` (string): URL to image
+	 * - `path` (string): Full path + filename to image
+	 * - `width` (int): Specified width
+	 * - `height` (int): Specified height
+	 * - `crop` (string): Cropping info string or blank if none
+	 * - `suffix` (array): Array of suffixes
 	 * 
-	 * @param string $basename Filename to check
+	 * The following are only present if variation is based on another variation, and thus has a parent variation
+	 * image between it and the original: 
+	 * 
+	 * - `suffixAll` (array): Contains all suffixes including among parent variations 
+	 * - `parent` (array): Variation info array of direct parent variation file
+	 * 
+	 * #pw-group-variations
+	 * 
+	 * @param string $basename Filename to check (basename, which excludes path)
 	 * @param bool $allowSelf When true, it will return variation info even if same as current Pageimage.
-	 * @return bool|array Returns false if not a variation or array of it is
+	 * @return bool|array Returns false if not a variation, or array of info if it is.
 	 *
 	 */
 	public function ___isVariation($basename, $allowSelf = false) {
@@ -939,6 +1137,8 @@ class Pageimage extends Pagefile {
 
 	/**
 	 * Delete all the alternate sizes associated with this Pageimage
+	 * 
+	 * #pw-group-variations
 	 *
 	 * @return $this
 	 *
@@ -956,7 +1156,9 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Identify this Pageimage as a variation, by setting the Pageimage it was resized from
+	 * Identify this Pageimage as a variation, by setting the Pageimage it was resized from.
+	 * 
+	 * #pw-group-variations
 	 *
 	 * @param Pageimage $image
 	 * @return $this
@@ -968,7 +1170,9 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * If this is a variation, return the original, otherwise return null
+	 * If this image is a variation, return the original, otherwise return null.
+	 * 
+	 * #pw-group-variations
 	 *
 	 * @return Pageimage|null
 	 *
@@ -983,6 +1187,8 @@ class Pageimage extends Pagefile {
 
 	/**
 	 * Delete the physical file(s) associated with this Pagefile
+	 * 
+	 * #pw-internal Public API should use delete method from Pageimages
 	 *
 	 */
 	public function unlink() {
@@ -993,6 +1199,8 @@ class Pageimage extends Pagefile {
 
 	/**
 	 * Copy this Pageimage and any of it's variations to another path
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $path
 	 * @return bool True if successful
@@ -1015,6 +1223,8 @@ class Pageimage extends Pagefile {
 	 * Install this Pagefile
 	 *
 	 * Implies copying the file to the correct location (if not already there), and populating it's name
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $filename Full path and filename of file to install
 	 * @throws WireException

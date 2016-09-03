@@ -1,12 +1,9 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Selectable Option class, for FieldtypeOptions
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * @property int $id

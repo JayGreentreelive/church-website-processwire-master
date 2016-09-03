@@ -3,12 +3,8 @@
  *
  * This Inputfield connects the jQuery UI Autocomplete widget with the ProcessWire ProcessPageSearch AJAX API.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
- * 
  *
  */
 var InputfieldPageAutocomplete = {
@@ -171,6 +167,12 @@ var InputfieldPageAutocomplete = {
 				}
 				//$(this).closest('.InputfieldPageAutocomplete').find('.InputfieldPageAutocompleteData').val('').change();
 			}
+			if($input.hasClass('focus-after-blur')) {
+				$input.removeClass('focus-after-blur');
+				setTimeout(function() {
+					$input.focus();
+				}, 250);
+			}
 
 		}).keyup(function() {
 			$icon.attr('class', $icon.attr('data-class')); 
@@ -210,7 +212,7 @@ var InputfieldPageAutocomplete = {
 					}
 					$note.hide();
 				} else {
-					$(this).blur();
+					$(this).addClass('focus-after-blur').blur();
 				}
 				return false;
 			}

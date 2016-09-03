@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * System Notifications for ProcessWire
@@ -60,7 +60,7 @@ class SystemNotifications extends WireData implements Module {
 	 * 
 	 */
 	public function __construct() {
-		$path = $this->wire('config')->paths->SystemNotifications;
+		$path = dirname(__FILE__) . '/';
 		require_once($path . "Notification.php"); 
 		require_once($path . "NotificationArray.php");
 		require_once($path . "SystemNotificationsConfig.php"); 
@@ -364,6 +364,7 @@ class SystemNotifications extends WireData implements Module {
 		if($this->placement == SystemNotificationsConfig::placementCombined) {
 			foreach($notices as $notice) {
 				$notification = $this->noticeToNotification($notice);
+				if(!$notification) continue;
 				$sort = time() + 2592000;
 				while(isset($notifications[$sort])) $sort++;
 				$notifications[$sort] = $notification;
@@ -452,7 +453,7 @@ class SystemNotifications extends WireData implements Module {
 	 * Convert ProcessWire runtime "Notice" objects to runtime Notification objects
 	 * 
 	 * @param Notice $notice
-	 * @return Notification
+	 * @return Notification|bool Returns Notification or boolean false on error
 	 *
 	 */
 	protected function noticeToNotification(Notice $notice) {
@@ -461,7 +462,12 @@ class SystemNotifications extends WireData implements Module {
 			else if($notice instanceof NoticeError) $type = 'error';
 			else $type = 'message';
 
-		$notification = $this->wire('user')->notifications()->getNew($type, false); 
+		$notifications = $this->wire('user')->notifications();
+		if(!$notifications) return false;
+		
+		$notification = $notifications->getNew($type, false);
+		if(!$notification) return false;
+		
 		$notification->setFlag('notice', true); 
 		
 		if($notice->flags & Notice::allowMarkup) $notification->setFlag('markup', true); 
@@ -624,7 +630,7 @@ class SystemNotifications extends WireData implements Module {
 			throw new WireException("There is already a field named '" . self::fieldName . "'"); 
 		}
 		if(!$field) {
-			$field = new Field();
+			$field = $this->wire(new Field());
 			$field->name = self::fieldName;
 			$field->label = 'Notifications';
 			$field->type = $fieldtype; 
@@ -644,8 +650,10 @@ class SystemNotifications extends WireData implements Module {
 		// $this->wire('modules')->saveModuleConfigData('ProcessProfile', $data); 
 
 		$notifications = $this->wire('user')->get(self::fieldName); 
-		$notifications->message('Hello World')->text('Thank you for installing the Notifications module. This is your first notification!');
-		$notifications->save();
+		if($notifications) {
+			$notifications->message('Hello World')->text('Thank you for installing the Notifications module. This is your first notification!');
+			$notifications->save();
+		}
 	}
 
 	/**

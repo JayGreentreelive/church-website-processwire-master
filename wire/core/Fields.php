@@ -1,17 +1,21 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Fields
  *
  * Manages collection of ALL Field instances, not specific to any particular Fieldgroup
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
- * @method Field get($key)
+ * #pw-summary Manages all custom fields in ProcessWire
+ * 
+ * @method Field|null get($key) Get a field by name or id
+ * @method bool changeFieldtype(Field $field1, $keepSettings = false)
+ * @method bool saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup, $namespace = '') 
+ * @method bool deleteFieldDataByTemplate(Field $field, Template $template) #pw-hooker
+ * @method void changedType(Saveable $item, Fieldtype $fromType, Fieldtype $toType) #pw-hooker
+ * @method void changeTypeReady(Saveable $item, Fieldtype $fromType, Fieldtype $toType) #pw-hooker
  *
  */
 
@@ -88,22 +92,31 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Construct and load the Fields
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function init() {
+		$this->wire($this->fieldsArray);
 		$this->load($this->fieldsArray); 
 	}
 
 	/**
 	 * Per WireSaveableItems interface, return a blank instance of a Field
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Field();
+		return $this->wire(new Field());
 	}
 
 	/**
 	 * Per WireSaveableItems interface, return all available Field instances
+	 * 
+	 * #pw-internal
+	 * 
+	 * @return FieldsArray
 	 *
 	 */
 	public function getAll() {
@@ -112,6 +125,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Per WireSaveableItems interface, return the table name used to save Fields
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getTable() {
@@ -120,6 +135,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Return the name that fields should be initially sorted by
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getSort() {
@@ -128,6 +145,13 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Save a Field to the database
+	 * 
+	 * ~~~~~
+	 * // Modify a field label and save it
+	 * $field = $fields->get('title');
+	 * $field->label = 'Title or Headline';
+	 * $fields->save($field); 
+	 * ~~~~~
 	 *
 	 * @param Field|Saveable $item The field to save
 	 * @return bool True on success, false on failure
@@ -152,6 +176,7 @@ class Fields extends WireSaveableItems {
 				$database->exec("RENAME TABLE `$prevTable` TO `tmp_$table`"); // QA
 				$database->exec("RENAME TABLE `tmp_$table` TO `$table`"); // QA
 			}
+			$item->type->renamedField($item, str_replace(Field::tablePrefix, '', $prevTable));
 			$item->prevTable = '';
 		}
 
@@ -170,13 +195,13 @@ class Fields extends WireSaveableItems {
 
 		if($item->flags & Field::flagGlobal) {
 			// make sure that all template fieldgroups contain this field and add to any that don't. 
-			foreach(wire('templates') as $template) {
+			foreach($this->wire('templates') as $template) {
 				if($template->noGlobal) continue; 
 				$fieldgroup = $template->fieldgroup; 
 				if(!$fieldgroup->hasField($item)) {
 					$fieldgroup->add($item); 
 					$fieldgroup->save();
-					if(wire('config')->debug) $this->message("Added field '{$item->name}' to template/fieldgroup '{$fieldgroup->name}'"); 
+					if($this->wire('config')->debug) $this->message("Added field '{$item->name}' to template/fieldgroup '{$fieldgroup->name}'"); 
 				}
 			}	
 		}
@@ -186,7 +211,7 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Check that the given Field's table exists and create it if it doesn't
-	 *
+	 * 
  	 * @param Field $field
 	 *
 	 */
@@ -201,7 +226,7 @@ class Fields extends WireSaveableItems {
 			if($field->type && count($field->type->getDatabaseSchema($field))) {
 				if($field->type->createField($field)) $this->message("Created table '$table'"); 
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false, $e->getMessage() . " (checkFieldTable)"); 
 		}
 	}
@@ -210,6 +235,8 @@ class Fields extends WireSaveableItems {
 	 * Check that all fields in the system have their tables installed
 	 *
 	 * This enables you to re-create field tables when migrating over entries from the Fields table manually (via SQL dumps or the like)
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function checkFieldTables() {
@@ -218,8 +245,10 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Delete a Field from the database
+	 * 
+	 * This method will throw a WireException if you attempt to delete a field that is currently in use (i.e. assigned to one or more fieldgroups). 
 	 *
-	 * @param Field|Saveable $item Item to save
+	 * @param Field|Saveable $item Field to delete
 	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 *
@@ -233,7 +262,7 @@ class Fields extends WireSaveableItems {
 
 		// if it's in use by any fieldgroups, then we don't allow it to be deleted
 		if($item->numFieldgroups()) {
-			$names = $item->getFieldgroups()->implode("', '", "name");
+			$names = $item->getFieldgroups()->implode("', '", (string) "name");
 			throw new WireException("Unable to delete field '{$item->name}' because it is in use by these fieldgroups: '$names'");
 		}
 
@@ -241,7 +270,7 @@ class Fields extends WireSaveableItems {
 		if($item->flags & Field::flagSystem) throw new WireException("Unable to delete field '{$item->name}' because it is a system field."); 
 
 		// delete entries in fieldgroups_fields table. Not really necessary since the above exception prevents this, but here in case that changes. 
-		$this->fuel('fieldgroups')->deleteField($item); 
+		$this->wire('fieldgroups')->deleteField($item); 
 
 		// drop the field's table
 		if($item->type) $item->type->deleteField($item); 
@@ -253,7 +282,7 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Create and return a cloned copy of the given Field
 	 *
-	 * @param Field|Saveable $item Item to clone
+	 * @param Field|Saveable $item Field to clone
 	 * @param string $name Optionally specify name for new cloned item
 	 * @return bool|Saveable $item Returns the new clone on success, or false on failure
 	 * @throws WireException
@@ -273,7 +302,8 @@ class Fields extends WireSaveableItems {
 
 		// don't clone the 'global' flag
 		if($item->flags & Field::flagGlobal) $item->flags = $item->flags & ~Field::flagGlobal;
-		
+	
+		/** @var Field $item */
 		$item = parent::___clone($item, $name);
 		if($item) $item->prevTable = null;
 		return $item;
@@ -281,24 +311,30 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Save the context of the given field for the given fieldgroup
+	 * 
+	 * #pw-advanced
 	 *
 	 * @param Field $field Field to save context for
 	 * @param Fieldgroup $fieldgroup Context for when field is in this fieldgroup
+	 * @param string $namespace An optional namespace for additional context
 	 * @return bool True on success
 	 * @throws WireException
 	 *
 	 */
-	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup) {
+	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup, $namespace = '') {
 
-		// get field without contxt
+		// get field without context
 		$fieldOriginal = $this->get($field->name);
-
 		$data = array();
 
 		// make sure given field and fieldgroup are valid
-		if(!($field->flags & Field::flagFieldgroupContext)) throw new WireException("Field must be in fieldgroup context before its context can be saved"); 
-		if(!$fieldgroup->has($fieldOriginal)) throw new WireException("Fieldgroup $fieldgroup does not contain field $field"); 
-		
+		if(!($field->flags & Field::flagFieldgroupContext)) throw new WireException("Field must be in fieldgroup context before its context can be saved");
+		if(!$fieldgroup->has($fieldOriginal)) throw new WireException("Fieldgroup $fieldgroup does not contain field $field");
+
+		$field_id = (int) $field->id;
+		$fieldgroup_id = (int) $fieldgroup->id; 
+		$database = $this->wire('database');
+
 		$newValues = $field->getArray();
 		$oldValues = $fieldOriginal->getArray();
 
@@ -352,6 +388,23 @@ class Fields extends WireSaveableItems {
 		// keep all in the same order so that it's easier to compare (by eye) in the DB
 		ksort($data);
 
+		if($namespace) {
+			// get existing data and move everything here into a namespace within that data
+			$query = $database->prepare('SELECT data FROM fieldgroups_fields WHERE fields_id=:field_id AND fieldgroups_id=:fieldgroup_id'); 
+			$query->bindValue(':field_id', $field_id, \PDO::PARAM_INT);
+			$query->bindValue(':fieldgroup_id', $fieldgroup_id, \PDO::PARAM_INT);
+			$query->execute();
+			list($existingData) = $query->fetch(\PDO::FETCH_NUM);
+			$existingData = strlen($existingData) ? json_decode($existingData, true) : array();
+			if(!is_array($existingData)) $existingData = array();
+			foreach($data as $k => $v) {
+				// disallow namespace within namespace
+				if(strpos($k, Fieldgroup::contextNamespacePrefix) === 0) unset($data[$k]);
+			}
+			$existingData[Fieldgroup::contextNamespacePrefix . $namespace] = $data;
+			$data = $existingData;
+		}
+		
 		// inject updated context back into model
 		$fieldgroup->setFieldContextArray($field->id, $data);
 
@@ -363,13 +416,10 @@ class Fields extends WireSaveableItems {
 		} else {
 			$data = "'" . $this->wire('database')->escapeStr($data) . "'";
 		}
-		$field_id = (int) $field->id; 
-		$fieldgroup_id = (int) $fieldgroup->id; 
 		
-		$database = $this->wire('database');
 		$query = $database->prepare("UPDATE fieldgroups_fields SET data=$data WHERE fields_id=:field_id AND fieldgroups_id=:fieldgroup_id"); // QA
-		$query->bindValue(':field_id', $field_id, PDO::PARAM_INT);
-		$query->bindValue(':fieldgroup_id', $fieldgroup_id, PDO::PARAM_INT); 
+		$query->bindValue(':field_id', $field_id, \PDO::PARAM_INT);
+		$query->bindValue(':fieldgroup_id', $fieldgroup_id, \PDO::PARAM_INT); 
 		$result = $query->execute();
 
 		return $result; 
@@ -378,8 +428,10 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Change a field's type
-	 *
-	 * @param Field $field1 Field with the new type
+	 * 
+	 * #pw-hooker
+	 * 
+	 * @param Field $field1 Field with the new type already assigned
 	 * @param bool $keepSettings Whether or not to keep custom $data settings (default=false)
 	 * @throws WireException
 	 * @return bool
@@ -418,11 +470,13 @@ class Fields extends WireSaveableItems {
 
 		$query = $database->prepare("DESCRIBE `$table1`"); // QA
 		$query->execute();
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) $schema1[] = $row['Field'];
+		/** @noinspection PhpAssignmentInConditionInspection */
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) $schema1[] = $row['Field'];
 
 		$query = $database->prepare("DESCRIBE `$table2`"); // QA
 		$query->execute();
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) $schema2[] = $row['Field'];
+		/** @noinspection PhpAssignmentInConditionInspection */
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) $schema2[] = $row['Field'];
 			
 		foreach($schema1 as $key => $value) {
 			if(!in_array($value, $schema2)) {
@@ -443,9 +497,8 @@ class Fields extends WireSaveableItems {
 				$errorInfo = $query->errorInfo();
 				$error = !empty($errorInfo[2]) ? $errorInfo[2] : 'Unknown Error'; 
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$exception = $e;
-			$result = false;
 			$error = $e->getMessage();
 		}
 
@@ -487,6 +540,8 @@ class Fields extends WireSaveableItems {
 	 * 
 	 * If you need to remove a field from a Fieldgroup, use Fieldgroup::remove(), and this
 	 * method will be call automatically at the appropriate time when save the fieldgroup. 
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Field $field
 	 * @param Template $template
@@ -498,17 +553,23 @@ class Fields extends WireSaveableItems {
 
 		// first we need to determine if the $field->type module has its own
 		// deletePageField method separate from base: Fieldtype/FieldtypeMulti
-		$reflector = new ReflectionClass($field->type->className());
+		$reflector = new \ReflectionClass($field->type->className(true));
 		$hasDeletePageField = false;
 
 		foreach($reflector->getMethods() as $method) {
 			$methodName = $method->getName();
-			if($methodName != '___deletePageField') continue;
+			if(strpos($methodName, '___deletePageField') === false) continue;
 			try {
-				new ReflectionMethod($reflector->getParentClass()->getName(), $methodName);
-				if(!in_array($method->getDeclaringClass()->getName(), array('Fieldtype', 'FieldtypeMulti'))) $hasDeletePageField = true;
+				new \ReflectionMethod($reflector->getParentClass()->getName(), $methodName);
+				if(!in_array($method->getDeclaringClass()->getName(), array(
+					'Fieldtype', 
+					'FieldtypeMulti', 
+					__NAMESPACE__ . "\\Fieldtype", 
+					__NAMESPACE__ . "\\FieldtypeMulti"))) {
+					$hasDeletePageField = true;
+				}
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				// not there
 			}
 			break;
@@ -532,7 +593,7 @@ class Fields extends WireSaveableItems {
 					$field->type->deletePageField($page, $field);
 					// $this->message("Deleted '{$field->name}' from '{$page->path}'", Notice::debug);
 
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->trackException($e, false, true);
 					$success = false;
 				}
@@ -549,10 +610,10 @@ class Fields extends WireSaveableItems {
 					"INNER JOIN pages ON pages.id=$table.pages_id " .
 					"WHERE pages.templates_id=:templates_id";
 			$query = $database->prepare($sql);
-			$query->bindValue(':templates_id', $template->id, PDO::PARAM_INT);
+			$query->bindValue(':templates_id', $template->id, \PDO::PARAM_INT);
 			try {
 				$query->execute();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage(), Notice::log);
 				$this->trackException($e);
 				$success = false;
@@ -581,10 +642,10 @@ class Fields extends WireSaveableItems {
 	 *
 	 * @param Field $field
 	 * @param array $options Optionally specify one of the following options:
-	 * 	template: Specify a Template object, ID or name to isolate returned rows specific to pages using that template.
-	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page.
-	 * 	getPageIDs: Specify boolean true to make it return an array of matching Page IDs rather than a count. 
-	 * @return int|array Returns array only if getPageIDs option set. 
+	 *  - `template` (template|int|string): Specify a Template object, ID or name to isolate returned rows specific to pages using that template.
+	 *  - `page` (Page|int|string): Specify a Page object, ID or path to isolate returned rows specific to that page.
+	 *  - `getPageIDs` (bool): Specify boolean true to make it return an array of matching Page IDs rather than a count. 
+	 * @return int|array Returns array only if getPageIDs option set, otherwise returns count of pages. 
 	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
 	 *
 	 */
@@ -598,12 +659,12 @@ class Fields extends WireSaveableItems {
 	 *
 	 * @param Field $field
 	 * @param array $options Optionally specify any of the following options:
-	 * 	template: Specify a Template object, ID or name to isolate returned rows specific to pages using that template. 
-	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page. 
-	 * 	countPages: Specify boolean true to make it return a page count rather than a row count (default=false). 
-	 * 		There will only potential difference between rows and pages counts with multi-value fields. 
-	 * 	getPageIDs: Specify boolean true to make it return an array of matching Page IDs rather than a count (overrides countPages).
-	 * @return int|array Returns array only if getPageIDs option set. 
+	 *  - `template` (Template|int|string): Specify a Template object, ID or name to isolate returned rows specific to pages using that template. 
+	 *  - `page` (Page|int|string): Specify a Page object, ID or path to isolate returned rows specific to that page. 
+	 *  - `countPages` (bool): Specify boolean true to make it return a page count rather than a row count (default=false). 
+	 * 	  There will only be potential difference between rows and pages counts with multi-value fields. 
+	 *  - `getPageIDs` (bool): Specify boolean true to make it return an array of matching Page IDs rather than a count (overrides countPages).
+	 * @return int|array Returns array only if getPageIDs option set, otherwise returns a count of rows. 
 	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
 	 *
 	 */
@@ -653,7 +714,7 @@ class Fields extends WireSaveableItems {
 						"WHERE pages.templates_id=:templateID ";
 			}
 			$query = $database->prepare($sql);
-			$query->bindValue(':templateID', $template->id, PDO::PARAM_INT);
+			$query->bindValue(':templateID', $template->id, \PDO::PARAM_INT);
 
 		} else if($options['page']) {
 			// count by specific page
@@ -675,7 +736,7 @@ class Fields extends WireSaveableItems {
 			}
 
 			$query = $database->prepare($sql);
-			$query->bindValue(':pageID', $pageID, PDO::PARAM_INT);
+			$query->bindValue(':pageID', $pageID, \PDO::PARAM_INT);
 
 		} else {
 			// overall total count
@@ -695,16 +756,17 @@ class Fields extends WireSaveableItems {
 		try {
 			$query->execute();
 			if($options['getPageIDs']) {
+				/** @noinspection PhpAssignmentInConditionInspection */
 				while($id = $query->fetchColumn()) {
 					$return[] = (int) $id;
 				}
 			} else if($useRowCount) {
 				$return = (int) $query->rowCount();
 			} else {
-				list($return) = $query->fetch(PDO::FETCH_NUM);
+				list($return) = $query->fetch(\PDO::FETCH_NUM);
 				$return = (int) $return;
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage() . " (getNumRows)");
 			$this->trackException($e, false);
 		}
@@ -716,6 +778,8 @@ class Fields extends WireSaveableItems {
 	 * Is the given field name native/permanent to the database?
 	 * 
 	 * This is deprecated, please us $fields->isNative($name) instead. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $name
 	 * @return bool
@@ -723,14 +787,18 @@ class Fields extends WireSaveableItems {
 	 *
 	 */
 	public static function isNativeName($name) {
-		return wire('fields')->isNative($name);
+		/** @var Fields $fields */
+		$fields = wire('fields');
+		return $fields->isNative($name);
 	}
 
 	/**
 	 * Is the given field name native/permanent to the database?
+	 * 
+	 * Such fields are disallowed from being used for custom field names. 
 	 *
-	 * @param string $name
-	 * @return bool
+	 * @param string $name Field name you want to check
+	 * @return bool True if field is native (and thus should not be used) or false if it's okay to use
 	 *
 	 */
 	public function isNative($name) {
@@ -741,6 +809,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Add a new name to be recognized as a native field name
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $name
 	 *
@@ -770,6 +840,8 @@ class Fields extends WireSaveableItems {
 	 *
 	 * This provides the back-end to the Field::viewable() and Field::editable() methods.
 	 * This method is for internal use, please instead use the Field::viewable() or Field::editable() methods.
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param Field|int|string Field to check
 	 * @param string $permission Specify either 'view' or 'edit'
@@ -813,6 +885,8 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Hook called when a field has changed type
 	 * 
+	 * #pw-hooker
+	 * 
 	 * @param Field|Saveable $item
 	 * @param Fieldtype $fromType
 	 * @param Fieldtype $toType
@@ -822,6 +896,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Hook called right before a field is about to change type
+	 * 
+	 * #pw-hooker
 	 * 
 	 * @param Field|Saveable $item
 	 * @param Fieldtype $fromType

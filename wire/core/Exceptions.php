@@ -1,14 +1,14 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Exceptions
  *
  * Exceptions that aren't specific to a particular class. 
- *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -17,7 +17,7 @@
  * Generic ProcessWire exception
  *
  */
-class WireException extends Exception {}
+class WireException extends \Exception {}
 
 /**
  * Triggered when access to a resource is not allowed

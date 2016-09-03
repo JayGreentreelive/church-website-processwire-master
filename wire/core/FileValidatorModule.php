@@ -1,11 +1,7 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Base class for FileValidator modules
- * 
- * ProcessWire 2.x
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
  * To create a FileValidator module: 
  * 
@@ -34,6 +30,8 @@
  *     }
  * }
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  * 
  * Class FileValidatorModule
  * 
@@ -168,6 +166,7 @@ abstract class FileValidatorModule extends WireData implements Module {
 	public function getField() {
 		$field = $this->_field ? $this->_field : null;
 		if(!$field && $this->_pagefile) return $this->_pagefile->field;
+		return $field;
 	}
 
 	/**

@@ -1,14 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire ProcessController
  *
  * Loads and executes Process Module instance and determines access.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -29,6 +26,8 @@ class ProcessControllerPermissionException extends WirePermissionException { }
  * A Controller for Process* Modules
  *
  * Intended to be used by templates that call upon Process objects
+ * 
+ * @method string execute()
  *
  */
 class ProcessController extends Wire {
@@ -207,11 +206,18 @@ class ProcessController extends Wire {
 				}
 			}
 		}
+		
+		if($method === 'executed') return '';
 
 		$hookedMethod = "___$method";
-		
-		if(method_exists($process, $method) || method_exists($process, $hookedMethod)) return $method; 
-			else return '';
+
+		if(method_exists($process, $method) 
+			|| method_exists($process, $hookedMethod) 
+			|| $process->hasHook($method . '()')) {
+			return $method;
+		} else {
+			return '';
+		}
 	}
 
 	/**
@@ -245,6 +251,7 @@ class ProcessController extends Wire {
 						$process->breadcrumb($href, $moduleInfo['title']); 
 					}
 				}
+				$this->process->executed($method);
 			} else {
 				throw new ProcessController404Exception("Unrecognized path");
 			}
@@ -262,7 +269,7 @@ class ProcessController extends Wire {
 				$viewFile = $this->getViewFile($this->process, $method); 
 				if($viewFile) {
 					// get output from a separate view file
-					$template = new TemplateFile($viewFile);	
+					$template = $this->wire(new TemplateFile($viewFile));	
 					foreach($content as $key => $value) {
 						$template->set($key, $value);
 					}

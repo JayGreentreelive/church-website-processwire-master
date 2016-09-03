@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire HTML Purifier module
@@ -31,7 +31,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 		return array(
 			'title' => 'HTML Purifier', 
 			'summary' => 'Front-end to the HTML Purifier library.', 
-			'version' => 104, 
+			'version' => 105, 
 			'singular' => false, 
 			'autoload' => false, 
 			);
@@ -55,7 +55,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 */
 	public function __construct() {
 		require_once(dirname(__FILE__) . '/htmlpurifier/HTMLPurifier.standalone.php'); 
-		$this->settings = HTMLPurifier_Config::createDefault();
+		$this->settings = \HTMLPurifier_Config::createDefault();
 		$this->settings->autoFinalize = false;
 	}
 
@@ -80,7 +80,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 */
 	protected function getCachePath()  {
 		$cachePath = $this->wire('config')->paths->cache . $this->className() . '/';
-		if(!is_dir($cachePath)) wireMkdir($cachePath); 
+		if(!is_dir($cachePath)) $this->wire('files')->mkdir($cachePath); 
 		return $cachePath;
 	}
 
@@ -101,7 +101,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 *
 	 */
 	public function getPurifier() {
-		if(is_null($this->purifier)) $this->purifier = new HTMLPurifier($this->settings); 	
+		if(is_null($this->purifier)) $this->purifier = new \HTMLPurifier($this->settings); 	
 		return $this->purifier; 
 	}
 

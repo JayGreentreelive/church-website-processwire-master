@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Configuration File
@@ -12,10 +12,7 @@
  * You may also make up your own configuration options by assigning them 
  * in /site/config.php 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * 
@@ -32,6 +29,8 @@
  * 9. Misc
  * 10. Runtime 
  * 11. System
+ * 
+ * @var Config $config
  * 
  */
 
@@ -74,7 +73,7 @@ $config->debugIf = '';
 /**
  * Tools, and their order, to show in debug mode (admin)
  * 
- * Options include: pages, api, session, modules, hooks, database, db, timers, user, input, cache 
+ * Options include: pages, api, session, modules, hooks, database, db, timers, user, input, cache, autoload
  * 
  * @var array
  * 
@@ -91,6 +90,7 @@ $config->debugTools = array(
 	'user',
 	'input',
 	'cache',
+	'autoload',
 );
 
 /**
@@ -113,8 +113,6 @@ $config->advanced = false;
  * 
  */
 $config->demo = false;
-
-
 
 
 /*** 2. DATES & TIMES *************************************************************************/
@@ -180,6 +178,41 @@ $config->sessionNameSecure = '';
  *
  */
 $config->sessionExpireSeconds = 86400;
+
+/**
+ * Are sessions allowed?
+ * 
+ * Use this to determine at runtime whether or not a session is allowed for the current request. 
+ * Otherwise, this should always be boolean TRUE. When using this option, we recommend 
+ * providing a callable function like below. Make sure that you put in some logic to enable
+ * sessions on admin pages at minimum. The callable function receives a single $wire argument
+ * which is the ProcessWire instance. 
+ * 
+ * Note that the API is not fully ready when this function is called, so the current $page and
+ * the current $user are not yet known, nor is the $input API variable available. 
+ * 
+ * Also note that if anything in the request calls upon $session->CSRF, then a session is 
+ * automatically enabled. 
+ *
+ * ~~~~~
+ * $config->sessionAllow = function($session) {
+ * 
+ *   // if there is a session cookie, a session is likely already in use so keep it going
+ *   if($session->hasCookie()) return true;
+ * 
+ *   // if URL is an admin URL, allow session
+ *   if(strpos($_SERVER['REQUEST_URI'], $session->config->urls->admin) === 0) return true;
+ * 
+ *   // otherwise disallow session
+ *   return false;
+ * };
+ * ~~~~~
+ * 
+ * @var bool|callable Should be boolean, or callable that returns boolean. 
+ * 
+ */
+$config->sessionAllow = true; 
+
 
 /**
  * Use session challenge?
@@ -255,6 +288,17 @@ $config->userAuthHashType = 'sha1';
 /*** 4. TEMPLATE FILES **************************************************************************/
 
 /**
+ * Allow template files to be compiled?
+ * 
+ * Set to false do disable the option for compiled template files. 
+ * When set to true, it will be used unless a given template's 'compile' option is set to 0.
+ * 
+ * @var bool
+ * 
+ */
+$config->templateCompile = strlen(__NAMESPACE__) > 0; 
+
+/**
  * Prepend template file 
  * 
  * PHP file in /site/templates/ that will be loaded before each page's template file.
@@ -301,32 +345,40 @@ $config->templateExtension = 'php';
 /**
  * Directory mode
  *
- * Octal string permissions assigned to directories created by ProcessWire
- * This value should always be overwritten by site-specific settings as 0777 
- * is too open for many installations. Note that changing this does not change 
- * permissions for existing directories, only newly created directories. 
+ * Octal string permissions assigned to directories created by ProcessWire.
+ * Please avoid 0777 if at all possible as that is too open for most installations. 
+ * Note that changing this does not change permissions for existing directories, 
+ * only newly created directories. 
  * 
  * #notes See [chmod man page](http://ss64.com/bash/chmod.html).
  * #pattern /^0[0-9]{3}$/
  * @var string
  *
  */
-$config->chmodDir = "0777";
+$config->chmodDir = "0755";
 
 /**
  * File mode
  *
- * Octal string permissions assigned to files created by ProcessWire
- * This value should always be overwritten by site-specific settings as 0666
- * is too open for many installations. Note that changing this does not change
- * permissions for existing files, only newly created/uploaded files.
+ * Octal string permissions assigned to files created by ProcessWire.
+ * Please avoid 0666 if at all possible as that is too open for most installations. 
+ * Note that changing this does not change permissions for existing files, only newly 
+ * created/uploaded files.
  * 
  * #notes See [chmod man page](http://ss64.com/bash/chmod.html).
  * #pattern /^0[0-9]{3}$/
  * @var string
  *
  */
-$config->chmodFile = "0666";
+$config->chmodFile = "0644";
+
+/**
+ * Set this to false if you want to suppress warnings about 0666/0777 permissions that are too open
+ * 
+ * @var bool 
+ * 
+ */
+$config->chmodWarn = true;
 
 /**
  * Bad file extensions for uploads
@@ -491,9 +543,10 @@ $config->imageSizerOptions = array(
  * 
  */
 $config->adminThumbOptions = array(
-	'width' => 0, // max width of admin thumbnail or 0 for proportional to height
-	'height' => 100, // max height of admin thumbnail or 0 for proportional to width
-	'scale' => 1, // admin thumb scale (1=auto detect, 0.5=always hidpi, 1.0=force non-hidpi)
+	'width' => 0, // max width of admin thumbnail or 0 for proportional to height (@deprecated, for legacy use)
+	'height' => 100, // max height of admin thumbnail or 0 for proportional to width (@deprecated, for legacy use)
+	'gridSize' => 130, // Squared grid size for images (replaces the 'width' and 'height' settings) 
+	'scale' => 1, // admin thumb scale (1=allow hidpi, 0.5=always hidpi, 1.0=force non-hidpi)
 	'upscaling' => false,
 	'cropping' => true,
 	'autoRotation' => true, // automatically correct orientation?
@@ -602,6 +655,31 @@ $config->pageNumUrlPrefix = 'page';
  * $config->pageNumUrlPrefixes = array();
  *
  */
+
+/**
+ * Character set for page names
+ * 
+ * Set to 'UTF8' (uppercase) to allow for non-ascii word characters in page names.
+ * You must also update the .htaccess file to allow non-ascii characters through. 
+ * See also $config->pageNameWhitelist, which is used if pageNameCharset is UTF8. 
+ * 
+ * @var string
+ * 
+ * #notes Value may be either 'ascii' (lowercase) or 'UTF8' (uppercase).
+ * 
+ */
+$config->pageNameCharset = 'ascii';
+
+/**
+ * If 'pageNameCharset' is 'UTF8' then specify the whitelist of allowed characters here
+ * 
+ * To allow any characters, you can make this blank, however using a whitelist is strongly recommended.
+ * Please note this whitelist is only used if pageNameCharset is 'UTF8'. 
+ * 
+ * @var string
+ * 
+ */ 
+$config->pageNameWhitelist = '-_.abcdefghijklmnopqrstuvwxyz0123456789æåäßöüđжхцчшщюяàáâèéëêěìíïîõòóôøùúûůñçčćďĺľńňŕřšťýžабвгдеёзийклмнопрстуфыэęąśłżź';
 
 /**
  * Maximum paginations
@@ -719,11 +797,29 @@ $config->dbPort = 3306;
  */
 $config->dbSocket = '';
 
-
+/**
+ * Maximum number of queries WireDatabasePDO will log in memory (when $config->debug is enabled)
+ * 
+ * @var int
+ * 
+ */
+$config->dbQueryLogMax = 500;
 
 
 
 /*** 8. MODULES *********************************************************************************/
+
+/**
+ * Use compiled modules?
+ *
+ * Set to false to disable the use of compiled modules.
+ * Set to true to enable PW to compile modules when it determines it is necessary.
+ * We recommend keeping this set to true unless all modules in use support PW 3.x natively. 
+ *
+ * @var bool
+ *
+ */
+$config->moduleCompile = true; 
 
 /**
  * Modules service URL
@@ -743,7 +839,7 @@ $config->moduleServiceURL = 'http://modules.processwire.com/export-json/';
  * @var string
  *
  */
-$config->moduleServiceKey = 'pw250';
+$config->moduleServiceKey = (__NAMESPACE__ ? 'pw300' : 'pw280');
 
 /**
  * Substitute modules
@@ -807,7 +903,9 @@ $config->pageEdit = array(
  * Additional core logs
  * 
  * All activities from the API functions corresponding with the given log names will be logged. 
- * Options that can be specified are: pages, fields, templates, modules, exceptions
+ * Options that can be specified are: pages, fields, templates, modules, exceptions, deprecated.
+ * 
+ * Use log "deprecated" to log deprecated calls (during development only).
  * 
  * @var array
  * 
@@ -925,6 +1023,14 @@ $config->preloadCacheNames = array(
 $config->allowExceptions = false;
 
 /**
+ * Use the X-Powered-By header?
+ * 
+ * @var bool
+ * 
+ */
+$config->usePoweredBy = true;
+
+/**
  * Settings specific to InputfieldWrapper class
  *
  * Setting useDependencies to false may enable to use depencencies in some places where
@@ -947,10 +1053,10 @@ $config->allowExceptions = false;
  */
 
 /**
- * https: This is automatically set to TRUE when the request is an HTTPS request
+ * https: This is automatically set to TRUE when the request is an HTTPS request, null when not determined.
  *
  */
-$config->https = false;
+$config->https = null;
 
 /**
  * ajax: This is automatically set to TRUE when the request is an AJAX request.
@@ -1035,3 +1141,14 @@ $config->preloadPageIDs = array(
 	40, // guest user
 );
 
+/**
+ * Unix timestamp of when this ProcessWire installation was installed
+ * 
+ * This is set in /site/config.php by the installer. It is used for auto-detection
+ * of when certain behaviors must remain backwards compatible. When this value is 0
+ * then it is assumed that all behaviors must remain backwards compatible. Once 
+ * established in /site/config.php, this value should not be changed. If your site
+ * config file does not specify this setting, then you should not add it.
+ * 
+ */
+$config->installed = 0;

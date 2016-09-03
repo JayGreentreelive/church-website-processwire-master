@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire CommentListInterface and CommentList
@@ -10,12 +10,9 @@
  * Typically you would iterate through the field and generate your own output. But if you just need
  * something simple, or are testing, then this may fit your needs. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
- * 
+ *
  *
  */
 
@@ -57,11 +54,12 @@ class CommentList extends Wire implements CommentListInterface {
 		'useGravatar' => '', 	// enable gravatar? if so, specify maximum rating: [ g | pg | r | x ] or blank = disable gravatar
 		'useGravatarImageset' => 'mm',	// default gravatar imageset, specify: [ 404 | mm | identicon | monsterid | wavatar ]
 		'usePermalink' => false, // @todo
-		'useVotes' => 0, 
+		'useVotes' => 0,
 		'useStars' => 0,
 		'upvoteFormat' => '&uarr;{cnt}',
 		'downvoteFormat' => '&darr;{cnt}', 
-		'depth' => 0, 
+		'depth' => 0,
+		'replyLabel' => 'Reply',
 		); 
 
 	/**
@@ -75,6 +73,7 @@ class CommentList extends Wire implements CommentListInterface {
 
 		$h3 = $this->_('h3'); // Headline tag
 		$this->options['headline'] = "<$h3>" . $this->_('Comments') . "</$h3>"; // Header text
+		$this->options['replyLabel'] = $this->_('Reply');
 		
 		if(empty($options['commentHeader'])) {
 			if(empty($options['dateFormat'])) {
@@ -178,7 +177,7 @@ class CommentList extends Wire implements CommentListInterface {
 		} else {
 			$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']);
 			if(strpos($header, '{votes}') !== false) $header = str_replace('{votes}', $this->renderVotes($comment), $header);
-			if(strpos($header, '{stars}') !== false) $header = str_replace('{stars}', $this->renderStars($comment), $header); 
+			if(strpos($header, '{stars}') !== false) $header = str_replace('{stars}', $this->renderStars($comment), $header);
 		}
 		
 		$liClass = '';
@@ -208,7 +207,7 @@ class CommentList extends Wire implements CommentListInterface {
 			$out .=
 				"\n\t\t<div class='CommentFooter'>" . 
 				"\n\t\t\t<p class='CommentAction'>" .
-				"\n\t\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->_('Reply') . "</a> " .
+				"\n\t\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->options['replyLabel'] . "</a> " .
 				($permalink ? "\n\t\t\t\t$permalink" : "") . 
 				"\n\t\t\t</p>" . 
 				"\n\t\t</div>";
@@ -248,7 +247,7 @@ class CommentList extends Wire implements CommentListInterface {
 		
 		return $out; 
 	}
-	
+
 	public function renderStars(Comment $comment) {
 		if(!$this->options['useStars']) return '';
 		if(!$comment->stars) return '';
@@ -290,7 +289,7 @@ class CommentList extends Wire implements CommentListInterface {
 		if(!$this->field) return '';
 
 		require_once(dirname(__FILE__) . '/CommentNotifications.php');
-		$no = new CommentNotifications($this->page, $this->field);
+		$no = $this->wire(new CommentNotifications($this->page, $this->field));
 		$info = $no->checkActions();
 		if($info['valid']) { 
 			$url = $this->page->url . '?'; 

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire CacheFile
@@ -8,15 +8,15 @@
  * Each cache file creates it's own directory based on the '$id' given.
  * The dir is created so that secondary cache files can be created too, 
  * and these are automatically removed when the remove() method is called.
- *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
-class CacheFile {
+class CacheFile extends Wire {
 
 	const cacheFileExtension = ".cache";
 	const globalExpireFilename = "lastgood";
@@ -49,16 +49,17 @@ class CacheFile {
 	 */ 
 	public function __construct($path, $id, $cacheTimeSeconds) {
 
+		$this->useFuel(false);
 		$path = rtrim($path, '/') . '/';
 		$this->globalExpireFile = $path . self::globalExpireFilename; 
 		$this->path = $id ? $path . $id . '/' : $path;
 
 		if(!is_dir($path)) {
-			if(!wireMkdir($path, true)) throw new WireException("Unable to create path: $path"); 
+			if(!$this->wire('files')->mkdir($path, true)) throw new WireException("Unable to create path: $path"); 
 		}
 
 		if(!is_dir($this->path)) {
-			if(!wireMkdir($this->path)) throw new WireException("Unable to create path: {$this->path}"); 
+			if(!$this->wire('files')->mkdir($this->path)) throw new WireException("Unable to create path: {$this->path}"); 
 		}
 
 		if(is_file($this->globalExpireFile)) {
@@ -188,12 +189,12 @@ class CacheFile {
 					return false;
 				}
 			} else {
-				wireMkdir("$dirname/", true);
+				$this->wire('files')->mkdir("$dirname/", true);
 			}
 		}
 
 		$result = file_put_contents($filename, $data); 
-		wireChmod($filename); 
+		$this->wire('files')->chmod($filename); 
 		return $result;
 	}
 
@@ -205,7 +206,7 @@ class CacheFile {
 	 */
 	public function remove() {
 
-		$dir = new DirectoryIterator($this->path); 
+		$dir = new \DirectoryIterator($this->path); 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 
 			//if(strpos($file->getFilename(), self::cacheFileExtension)) @unlink($file->getPathname()); 
@@ -217,6 +218,8 @@ class CacheFile {
 
 	/**
 	 * Removes just the given file, as opposed to remove() which removes the entire cache for primaryID
+	 * 
+	 * @param string $filename
 	 *
 	 */
 	protected function removeFilename($filename) {
@@ -234,7 +237,7 @@ class CacheFile {
 	 */
 	static public function removeAll($path, $rmdir = false) {
 
-		$dir = new DirectoryIterator($path); 
+		$dir = new \DirectoryIterator($path); 
 		$numRemoved = 0;
 	
 		foreach($dir as $file) {

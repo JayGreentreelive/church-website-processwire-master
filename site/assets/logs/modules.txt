@@ -64,3 +64,56 @@
 2016-04-20 11:40:41	admin	http://church.markgoldsmith.me/admin/module/edit?name=ProcessEventsDuplicator	Saved module info caches
 2016-04-20 11:40:50	admin	http://church.markgoldsmith.me/admin/module/	Installed module 'ProcessEventsDuplicator'
 2016-04-20 11:40:50	admin	http://church.markgoldsmith.me/admin/module/	Saved module info caches
+2016-09-03 14:15:16	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:15:18	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:15:58	admin	http://dev.thursdaychurch.org/admin/setup/upgrades/	Saved module info caches
+2016-09-03 14:16:18	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:16:20	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:16:30	admin	http://dev.thursdaychurch.org/admin/module/?reset=1&edit=AllInOneMinify	Saved module info caches
+2016-09-03 14:16:31	admin	http://dev.thursdaychurch.org/admin/module/?reset=1&edit=AllInOneMinify	Saved module info caches
+2016-09-03 14:17:19	admin	http://dev.thursdaychurch.org/admin/setup/upgrades/	Saved module info caches
+2016-09-03 14:17:36	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:17:38	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:17:43	admin	http://dev.thursdaychurch.org/admin/module/?reset=1&edit=TextformatterVideoEmbed	Saved module info caches
+2016-09-03 14:17:44	admin	http://dev.thursdaychurch.org/admin/module/?reset=1&edit=TextformatterVideoEmbed	Saved module info caches
+2016-09-03 14:17:56	admin	http://dev.thursdaychurch.org/admin/module/edit?name=TextformatterVideoEmbed	Saved module 'TextformatterVideoEmbed' config data
+2016-09-03 14:18:03	admin	http://dev.thursdaychurch.org/admin/setup/upgrades/	Saved module info caches
+2016-09-03 14:18:15	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:18:16	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:18:38	admin	http://dev.thursdaychurch.org/admin/module/?reset=1&edit=SchedulePages	Saved module info caches
+2016-09-03 14:18:39	admin	http://dev.thursdaychurch.org/admin/module/?reset=1&edit=SchedulePages	Saved module info caches
+2016-09-03 14:18:49	admin	http://dev.thursdaychurch.org/admin/setup/upgrades/	Saved module info caches
+2016-09-03 14:19:02	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:19:04	admin	http://dev.thursdaychurch.org/admin/module/download/	Saved module info caches
+2016-09-03 14:19:09	admin	http://dev.thursdaychurch.org/admin/module/?reset=1&edit=ProcessBatcher	Saved module info caches
+2016-09-03 14:19:10	admin	http://dev.thursdaychurch.org/admin/module/?reset=1&edit=ProcessBatcher	Saved module info caches
+2016-09-03 14:19:18	admin	http://dev.thursdaychurch.org/admin/module/edit?name=ProcessBatcher	Saved module 'ProcessBatcher' config data
+2016-09-03 14:19:26	admin	http://dev.thursdaychurch.org/admin/setup/upgrades/	Saved module info caches
+2016-09-03 14:23:10	admin	http://dev.thursdaychurch.org/admin/setup/upgrades/	Saved module info caches
+2016-09-03 14:24:51	?	?	Saved module info caches
+2016-09-03 14:24:52	?	?	Saved module 'SystemUpdater' config data
+2016-09-03 14:24:52	?	?	Saved module info caches
+2016-09-03 14:25:05	admin	http://dev.thursdaychurch.org/admin/setup/upgrades/	Saved module info caches
+2016-09-03 14:27:50	admin	http://dev.thursdaychurch.org/admin/module/edit?name=MarkupiCalendar	Uninstalled module 'MarkupiCalendar'
+2016-09-03 14:27:51	admin	http://dev.thursdaychurch.org/admin/module/edit?name=MarkupiCalendar	Saved module info caches
+2016-09-03 14:28:22	admin	http://dev.thursdaychurch.org/admin/module/	Installed module 'FieldtypeOptions'
+2016-09-03 14:28:23	admin	http://dev.thursdaychurch.org/admin/module/	Saved module info caches
+2016-09-03 14:28:30	admin	http://dev.thursdaychurch.org/admin/module/edit?name=FieldtypeOptions	Saved module 'FieldtypeOptions' config data
+2016-09-03 14:28:44	admin	http://dev.thursdaychurch.org/admin/module/	Installed module 'MarkupiCalendar'
+2016-09-03 14:28:45	admin	http://dev.thursdaychurch.org/admin/module/	Saved module info caches
+2016-09-03 14:28:57	admin	http://dev.thursdaychurch.org/admin/module/edit?name=MarkupiCalendar	Saved module 'MarkupiCalendar' config data
+2016-09-03 14:29:10	admin	http://dev.thursdaychurch.org/admin/module/	Installed module 'FieldtypeNotifications'
+2016-09-03 14:29:11	admin	http://dev.thursdaychurch.org/admin/module/	Saved module info caches
+2016-09-03 14:29:11	admin	http://dev.thursdaychurch.org/admin/module/	Installed module 'SystemNotifications'
+2016-09-03 14:29:12	admin	http://dev.thursdaychurch.org/admin/module/	Saved module info caches
+2016-09-03 14:30:06	admin	http://dev.thursdaychurch.org/admin/module/edit?name=SystemNotifications	Saved module 'SystemNotifications' config data
+2016-09-03 14:30:42	admin	http://dev.thursdaychurch.org/admin/module/	Saved module 'ProcessProfile' config data
+2016-09-03 14:30:42	admin	http://dev.thursdaychurch.org/admin/module/	Installed module 'AdminThemeReno'
+2016-09-03 14:30:47	admin	http://dev.thursdaychurch.org/admin/module/	Saved module info caches
+2016-09-03 14:30:55	admin	http://dev.thursdaychurch.org/admin/module/edit?name=AdminThemeReno	Saved module 'AdminThemeReno' config data
+2016-09-03 14:31:22	admin	http://dev.thursdaychurch.org/admin/setup/upgrades/	Saved module info caches
+2016-09-03 14:41:54	admin	http://dev.thursdaychurch.org/admin/module/edit?name=AllInOneMinify	Saved module 'AllInOneMinify' config data
+2016-09-03 15:14:15	admin	http://dev.thursdaychurch.org/admin/module/edit?name=AllInOneMinify	Saved module 'AllInOneMinify' config data
+2016-09-03 16:45:39	?	?	Saved module info caches
+2016-09-03 16:45:39	?	?	Saved module 'SystemUpdater' config data
+2016-09-03 16:45:42	?	?	Saved module info caches

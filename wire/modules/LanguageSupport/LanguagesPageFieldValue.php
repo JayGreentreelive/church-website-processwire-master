@@ -1,17 +1,14 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Serves as a multi-language value placeholder for field values that contain a value in more than one language. 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
 
-class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, IteratorAggregate {
+class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, \IteratorAggregate {
 
 	/**
 	 * Inherit default language value when blank
@@ -44,14 +41,26 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, I
 	protected $field;
 
 	/**
+	 * Reference to Page that this value is for
+	 * 
+	 * @var Page
+	 * 
+	 */
+	protected $page; 
+
+	/**
 	 * Construct the multi language value
 	 *
  	 * @param array|string $values
 	 *
 	 */
-	public function __construct($values = null) { // #98
+	public function __construct(Page $page, Field $field, $values = null) { // #98
+	
+		$page->wire($this);
+		$this->setPage($page);
+		$this->setField($field);
 
-		$languageSupport = wire('modules')->get('LanguageSupport');
+		$languageSupport = $this->wire('modules')->get('LanguageSupport');
 		$this->defaultLanguagePageID = $languageSupport->defaultLanguagePageID; 
 
 		if(!is_array($values)) $values = array('data' => $values); 
@@ -99,7 +108,7 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, I
 	 */
 	public function setFromInputfield(Inputfield $inputfield) {
 
-		foreach(wire('languages') as $language) {
+		foreach($this->wire('languages') as $language) {
 			if($language->isDefault) {
 				$key = 'value';
 			} else {
@@ -136,7 +145,7 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, I
 	 *
 	 */
 	public function __toString() {
-		return self::isHooked('LanguagesPageFieldValue::getStringValue()') ? $this->__call('getStringValue', array()) : $this->___getStringValue();
+		return $this->wire('hooks')->isHooked('LanguagesPageFieldValue::getStringValue()') ? $this->__call('getStringValue', array()) : $this->___getStringValue();
 	}
 
 	protected function ___getStringValue() {
@@ -160,6 +169,10 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, I
 		$this->field = $field; 
 	}
 	
+	public function setPage(Page $page) {
+		$this->page = $page; 
+	}
+	
 	public function __debugInfo() {
 		$info = parent::__debugInfo();
 		foreach($this->wire('languages') as $language) {
@@ -171,13 +184,13 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, I
 	/**
 	 * Allows iteration of the languages values
 	 *
-	 * Fulfills IteratorAggregate interface.
+	 * Fulfills \IteratorAggregate interface.
 	 *
 	 * @return ArrayObject
 	 *
 	 */
 	public function getIterator() {
-		return new ArrayObject($this->data);
+		return new \ArrayObject($this->data);
 	}
 }
 

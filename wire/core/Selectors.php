@@ -1,14 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Selectors
  *
  * Processes a Selector string and can then be iterated to retrieve each resulting Selector object.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -93,19 +90,35 @@ class Selectors extends WireArray {
 		'{' => '}',
 		'(' => ')',
 		);
-
+	
 	/**
 	 * Given a selector string, extract it into one or more corresponding Selector objects, iterable in this object.
 	 * 
-	 * @param string|null Selector string. If not provided here, please follow-up with a setSelectorString($str) call. 
+	 * @param string|null|array $selector Selector string or array. If not provided here, please follow-up with a setSelectorString($str) call. 
 	 *
 	 */
-	public function __construct($selectorStr = null) {
-		if(!is_null($selectorStr)) $this->setSelectorString($selectorStr); 
+	public function __construct($selector = null) {
+		if(!is_null($selector)) $this->init($selector);
 	}
 
 	/**
-	 * Set the selector string (if not provided to constructor)
+	 * Set the selector string or array (if not set already from the constructor)
+	 * 
+	 * @param string|array $selector
+	 * 
+	 */
+	public function init($selector) {
+		if(is_array($selector)) {
+			$this->setSelectorArray($selector);
+		} else if(is_object($selector) && $selector instanceof Selector) {
+			$this->add($selector);
+		} else {
+			$this->setSelectorString($selector);
+		}
+	}
+
+	/**
+	 * Set the selector string 
 	 * 
 	 * @param string $selectorStr
 	 * 
@@ -114,7 +127,7 @@ class Selectors extends WireArray {
 		$this->selectorStr = $selectorStr;
 		$this->extractString(trim($selectorStr)); 
 	}
-
+	
 	/**
 	 * Import items into this WireArray.
 	 * 
@@ -126,6 +139,7 @@ class Selectors extends WireArray {
 	public function import($items) {
 		if(is_string($items)) {
 			$this->extractString($items); 	
+			return $this;
 		} else {
 			return parent::import($items); 
 		}
@@ -133,6 +147,9 @@ class Selectors extends WireArray {
 
 	/**
 	 * Per WireArray interface, return true if the item is a Selector instance
+	 * 
+	 * @param Selector $item
+	 * @return bool
 	 *
 	 */
 	public function isValidItem($item) {
@@ -144,7 +161,7 @@ class Selectors extends WireArray {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new SelectorEqual('','');
+		return $this->wire(new SelectorEqual('',''));
 	}
 
 	/**
@@ -277,13 +294,22 @@ class Selectors extends WireArray {
 	 * @throws WireException
 	 *
 	 */
-	protected function create($field, $operator, $value) {
+	public function create($field, $operator, $value) {
+		$not = false;
 		if(!isset(self::$selectorTypes[$operator])) {
-			$debug = $this->wire('config')->debug ? "field='$field', value='$value', selector: '$this->selectorStr'" : "";
-			throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug"); 
+			// unrecognized operator, see if it's an alternate placement for NOT "!" statement
+			$op = ltrim($operator, '!');
+			if(isset(self::$selectorTypes[$op])) {
+				$operator = $op;
+				$not = true;
+			} else {
+				$debug = $this->wire('config')->debug ? "field='$field', value='$value', selector: '$this->selectorStr'" : "";
+				throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug");
+			}
 		}
-		$class = self::$selectorTypes[$operator]; 
-		$selector = new $class($field, $value); 
+		$class = wireClassName(self::$selectorTypes[$operator], true); 
+		$selector = $this->wire(new $class($field, $value)); 
+		if($not) $selector->not = true;
 		return $selector; 		
 	}
 
@@ -301,7 +327,12 @@ class Selectors extends WireArray {
 		
 		while(strlen($str)) {
 
+			$not = false;
 			$quote = '';	
+			if(strpos($str, '!') === 0) {
+				$str = ltrim($str, '!');
+				$not = true; 
+			}
 			$group = $this->extractGroup($str); 	
 			$field = $this->extractField($str); 
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
@@ -320,6 +351,7 @@ class Selectors extends WireArray {
 				$selector = $this->create($field, $operator, $value);
 				if(!is_null($group)) $selector->group = $group; 
 				if($quote) $selector->quote = $quote; 
+				if($not) $selector->not = true; 
 				$this->add($selector); 
 			}
 
@@ -353,6 +385,9 @@ class Selectors extends WireArray {
 
 	/**
 	 * Given a string starting with a field, return that field, and remove it from $str. 
+	 * 
+	 * @param string $str
+	 * @return string
 	 *
 	 */
 	protected function extractField(&$str) {
@@ -380,6 +415,10 @@ class Selectors extends WireArray {
 
 	/**
 	 * Given a string starting with an operator, return that operator, and remove it from $str. 
+	 * 
+	 * @param string $str
+	 * @param array $operatorChars
+	 * @return string
 	 *
 	 */
 	protected function extractOperator(&$str, array $operatorChars) {
@@ -493,6 +532,7 @@ class Selectors extends WireArray {
 
 		$value = '';
 		$lastc = '';
+		$quoteDepth = 0;
 
 		do {
 			if(!isset($str[$n])) break;
@@ -503,20 +543,29 @@ class Selectors extends WireArray {
 				// we are in a quoted value string
 
 				if($c == $closingQuote) { // reference closing quote
-
+					
 					if($lastc != '\\') {
 						// same quote that opened, and not escaped
 						// means the end of the value
-
-						$n++; // skip over quote 
-						$quote = $openingQuote; 
-						break;
+						
+						if($quoteDepth > 0) {
+							// closing of an embedded quote
+							$quoteDepth--;
+						} else {
+							$n++; // skip over quote 
+							$quote = $openingQuote;
+							break;
+						}
 
 					} else {
 						// this is an intentionally escaped quote
 						// so remove the escape
 						$value = rtrim($value, '\\'); 
 					}
+					
+				} else if($c == $openingQuote && $openingQuote != $closingQuote) {
+					// another opening quote of the same type encountered while already in a quote
+					$quoteDepth++;
 				}
 
 			} else {
@@ -538,9 +587,14 @@ class Selectors extends WireArray {
 			$value .= $c; 
 			$lastc = $c;
 
-		} while(++$n < self::maxValueLength); 
+		} while(++$n);
+		
+		$len = strlen("$value");
+		if($len) {
+			$str = substr($str, $n);
+			if($len > self::maxValueLength) $value = substr($value, 0, self::maxValueLength);
+		}
 
-		if(strlen("$value")) $str = substr($str, $n);
 		$str = ltrim($str, ' ,"\']})'); // should be executed even if blank value
 
 		// check if a pipe character is present next, indicating an OR value may be provided
@@ -667,99 +721,291 @@ class Selectors extends WireArray {
 		}
 		return rtrim($str, ", "); 
 	}
+	
+	protected function getSelectorArrayType($data) {
+		$dataType = '';
+		if(is_int($data)) {
+			$dataType = 'int';
+		} else if(is_string($data)) {
+			$dataType = 'string';
+		} else if(is_array($data)) {
+			$dataType = ctype_digit(implode('', array_keys($data))) ? 'array' : 'assoc';
+			if($dataType == 'assoc' && isset($data['field'])) $dataType = 'verbose';
+		} 
+		return $dataType;	
+	}
+	
+	protected function getOperatorFromField(&$field) {
+		$operator = '=';
+		$operators = array_keys(self::$selectorTypes);
+		$operatorsStr = implode('', $operators);
+		$op = substr($field, -1);
+		if(strpos($operatorsStr, $op) !== false) {
+			// extract operator from $field
+			$field = substr($field, 0, -1);
+			$op2 = substr($field, -1);
+			if(strpos($operatorsStr, $op2) !== false) {
+				$field = substr($field, 0, -1);
+				$op = $op2 . $op;
+			}
+			$operator = $op;
+			$field = trim($field);
+		}
+		return $operator;
+	}
 
-
+	
 	/**
-	 * Utility method to convert array to selector string (work in progress, future use)
-	 * 
-	 * Accepts regular indexed or associative array. 
-	 * 
-	 * When given an associative array, the keys are assumed to be field names. An operator
-	 * may be appended to this field name. If no operator is present, then "=" is assumed. 
-	 * The values may be string, int or array. When given an array, it is assumed the values
-	 * are OR values. 
-	 * 
-	 * When given a regular array, the value may be an int or a string. if the value contains 
-	 * an operator, it is assumed to be a key=value statement. If the value is an integer or
-	 * integer string, it is assumed to be a page ID. Otherwise, if the value contains no
-	 * operator, it is discarded. 
-	 * 
-	 * Currently this method does no sanitization, it only converts an array to a selector
-	 * string. 
-	 * 
-	 * @todo this method is not yet functional or in use
-	 * 
+	 * Create this Selectors object from an array
+	 *
 	 * @param array $a
-	 * @return string
-	 * 
+	 * @throws WireException
+	 *
 	 */
-	public static function arrayToSelectorString(array $a) {
-
-		$parts = array(); // regular array, components of the selector
-		$ids = array(); // array of page IDs, if present
-		$sanitizer = wire('sanitizer');
-
-		foreach($a as $key => $value) {
-
-			if(ctype_digit($key)) {
+	public function setSelectorArray(array $a) {
+		
+		$groupCnt = 0;
+		
+		// fields that may only appear once in a selector
+		$singles = array(
+			'start' => '',
+			'limit' => '',
+			'end' => '',
+		);
+		
+		foreach($a as $key => $data) {
+			
+			$keyType = $this->getSelectorArrayType($key);
+			$dataType = $this->getSelectorArrayType($data);
+			
+			if($keyType == 'int' && $dataType == 'assoc') {
+				// OR-group
+				$groupCnt++;
 				
-				// regular array, we can ignore $key
-				if(is_int($value) || ctype_digit("$value")) {
-					// value is page ID
-					$ids[] = (int) $value;
-					
-				} else if(strpos($value, '=') || strpos($value, '<') || strpos($value, '>')) {
-					// value contains an operator
-					$parts[] = $value; 
-					
-				} else {
-					// we have no idea what $value is? discard it
-					continue;
+				foreach($data as $k => $v) {
+					$s = $this->makeSelectorArrayItem($k, $v);
+					$selector1 = $this->create($s['field'], $s['operator'], $s['value']);
+					$selector2 = $this->create("or$groupCnt", "=", $selector1);
+					$selector2->quote = '(';
+					$this->add($selector2);
 				}
-
+				
 			} else {
-				// associative, array key is field name, optionally with operator at end (= assumed otherwise)
-
-				if(is_array($value)) {
-					// value contains multiple OR values
-					foreach($value as $k => $v) {
-						if(!ctype_digit("$v")) $value[$k] = $sanitizer->selectorValue($v);
-					}
-					$value = implode('|', $value);
-
-				} else if(is_int($value) || ctype_digit("$value")) {
-					// number
-					$value = (int) $value;
-
-				} else {
-					// value is single value
-					$value = trim($value); 
-					$quotes = substr($value, 0, 1) . substr($value, -1);
-					if($quotes == '""' || $quotes == "''" || $quotes == '[]' || $quotes == '()') {
-						// value is already quoted so we leave it 
+				
+				$s = $this->makeSelectorArrayItem($key, $data, $dataType);
+				$field = $s['field'];
+				
+				if(!is_array($field) && isset($singles[$field])) {
+					if(empty($singles[$field])) {
+						// mark it as present
+						$singles[$field] = true;
 					} else {
-						// value may need quotes, let sanitizer decide
-						$value = $sanitizer->selectorValue($value);
+						// skip, because this 'single' field has already appeared
+						continue;
 					}
 				}
-
-				if(strpos($key, '=') || strpos($key, '<') || strpos($key, '>')) {
-					// key already contains operator at end
-				} else {
-					// no operator present, so we assume the "=" operator by appending to key
-					$key .= '=';
-				}
-
-				$parts[] = "$key$value";
+				
+				$selector = $this->create($field, $s['operator'], $s['value']);
+				
+				if($s['not']) $selector->not = true;
+				if($s['group']) $selector->group = $s['group'];
+				if($s['quote']) $selector->quote = $s['quote'];
+				
+				$this->add($selector);
 			}
 		}
+	}
 
-		// create selector string
-		$str = '';
-		if(count($ids)) $str .= "id=" . implode('|', $ids) . ', ';
-		if(count($parts)) $str .= implode(', ', $parts);
+	/**
+	 * Return an array of an individual Selector info, for use by setSelectorArray() method
+	 * 
+	 * @param string|int $key
+	 * @param array $data
+	 * @param string $dataType One of 'string', 'array', 'assoc', or 'verbose'
+	 * @return array
+	 * @throws WireException
+	 * 
+	 */
+	protected function makeSelectorArrayItem($key, $data, $dataType = '') {
 		
-		return rtrim($str, ', ');
+		$sanitizer = $this->wire('sanitizer');
+		$sanitize = 'selectorValue';
+		$fields = array();
+		$values = array();
+		$operator = '=';
+		$whitelist = null;
+		$not = false;
+		$group = '';
+		$find = ''; // sub-selector
+		$quote = '';
+		
+		if(empty($dataType)) $dataType = $this->getSelectorArrayType($data);
+
+		if(is_int($key) && $dataType == 'verbose') {
+
+			// Verbose selector with associative array of properties, in this expected format: 
+			// 
+			// $data = array(
+			//  'field' => array|string, // field name, or field names
+			//  'value' => array|string|number|object, // value or values, or omit if using 'find' 
+			//  ---the following are optional---
+			//  'operator' => '=>', // operator, '=' is the default
+			//  'not' => false, // specify true to make this a NOT condition (default=false)
+			//  'sanitize' => 'selectorValue', // sanitizer method to use on value(s), 'selectorValue' is default
+			//  'find' => array(...), // sub-selector to use instead of 'value'
+			//  'whitelist' => null|array, // whitelist of allowed values, NULL is default, which means ignore. 
+			//  );
+
+			if(isset($data['fields']) && !isset($data['field'])) $data['field'] = $data['fields']; // allow plural alternate
+			if(!isset($data['field'])) {
+				throw new WireException("Invalid selectors array, lacks 'field' property for index $key");
+			}
+
+			if(isset($data['values']) && !isset($data['value'])) $data['value'] = $data['values']; // allow plural alternate
+			if(!isset($data['value']) && !isset($data['find'])) {
+				throw new WireException("Invalid selectors array, lacks 'value' property for index $key");
+			}
+
+			if(isset($data['sanitizer']) && !isset($data['sanitize'])) $data['sanitize'] = $data['sanitizer']; // allow alternate
+			if(isset($data['sanitize'])) $sanitize = $sanitizer->fieldName($data['sanitize']);
+
+			if(!empty($data['operator'])) $operator = $data['operator'];
+			if(!empty($data['not'])) $not = (bool) $data['not'];
+
+			// may use either 'group' or 'or' to specify or-group
+			if(!empty($data['group'])) {
+				$group = $sanitizer->fieldName($data['group']);
+			} else if(!empty($data['or'])) {
+				$group = $sanitizer->fieldName($data['or']);
+			}
+
+			if(!empty($data['find'])) {
+				if(isset($data['value'])) throw new WireException("You may not specify both 'value' and 'find' at the same time");
+				// if(!is_array($data['find'])) throw new WireException("Selector 'find' property must be specified as array"); 
+				$find = $data['find'];
+			}
+
+			if(isset($data['whitelist']) && $data['whitelist'] !== null) {
+				$whitelist = $data['whitelist'];
+				if(is_object($whitelist) && $whitelist instanceof WireArray) $whitelist = explode('|', (string) $whitelist);
+				if(!is_array($whitelist)) $whitelist = array($whitelist);
+			}
+
+			if($sanitize && $sanitize != 'selectorValue' && !method_exists($sanitizer, $sanitize)) {
+				throw new WireException("Unrecognized sanitize method: " . $sanitizer->name($sanitize));
+			}
+
+			$_fields = is_array($data['field']) ? $data['field'] : array($data['field']);
+			$_values = is_array($data['value']) ? $data['value'] : array($data['value']);
+			
+		} else if(is_string($key)) {
+			
+			// Non-verbose selector, where $key is the field name and $data is the value
+			// The $key field name may have an optional operator appended to it
+		
+			$operator = $this->getOperatorFromField($key);
+			$_fields = strpos($key, '|') ? explode('|', $key) : array($key);
+			$_values = is_array($data) ? $data : array($data);
+			
+		} else if($dataType == 'array') {
+			
+			// selector in format: array('field', 'operator', 'value', 'sanitizer_method')
+			// or array('field', 'operator', 'value', array('whitelist value1', 'whitelist value2', 'etc'))
+			// or array('field', 'operator', 'value')
+			// or array('field', 'value') where '=' is assumed operator
+			$field = '';
+			$value = array();
+			
+			if(count($data) == 4) {
+				list($field, $operator, $value, $_sanitize) = $data;
+				if(is_array($_sanitize)) {
+					$whitelist = $_sanitize;
+				} else {
+					$sanitize = $sanitizer->name($_sanitize);
+				}
+
+			} else if(count($data) == 3) {
+				list($field, $operator, $value) = $data;
+				
+			} else if(count($data) == 2) {
+				list($field, $value) = $data;
+				$operator = $this->getOperatorFromField($field);
+			}
+		
+			if(is_array($field)) {
+				$_fields = $field;
+			} else {
+				$_fields = strpos($field, '|') ? explode('|', $field) : array($field);
+			}
+			
+			$_values = is_array($value) ? $value : array($value);
+			
+		} else {
+			throw new WireException("Unable to resolve selector array");	
+		}
+	
+		// make sure operator is valid
+		if(!isset(self::$selectorTypes[$operator])) {
+			throw new WireException("Unrecognized selector operator '$operator'");
+		}
+	
+		// determine field(s)
+		foreach($_fields as $name) {
+			if(strpos($name, '.') !== false) {
+				// field name with multiple.named.parts, sanitize them separately
+				$parts = explode('.', $name);
+				foreach($parts as $n => $part) {
+					$parts[$n] = $sanitizer->fieldName($part);
+				}
+				$_name = implode('.', $parts);
+			} else {
+				$_name = $sanitizer->fieldName($name);
+			}
+			if($_name !== $name) {
+				throw new WireException("Invalid Selectors field name (sanitized value '$_name' did not match specified value)");
+			}
+			$fields[] = $_name;
+		}
+
+		// determine value(s)
+		foreach($_values as $value) {
+			$_sanitize = $sanitize;
+			if(is_array($value)) $value = 'array'; // we don't allow arrays here
+			if(is_object($value)) $value = (string) $value;
+			if(is_int($value) || ctype_digit($value)) {
+				$value = (int) $value;
+				if($_sanitize == 'selectorValue') $_sanitize = ''; // no need to sanitize integer to string
+			}
+			if(is_array($whitelist) && !in_array($value, $whitelist)) {
+				$fieldsStr = implode('|', $fields);
+				throw new WireException("Value given for '$fieldsStr' is not in provided whitelist");
+			}
+			if($_sanitize === 'selectorValue') {
+				$value = $sanitizer->selectorValue($value, array('useQuotes' => false)); 
+			} else if($_sanitize) {
+				$value = $sanitizer->$_sanitize($value);
+			}
+			$values[] = $value;
+		}
+
+		if($find) {
+			// sub-selector find
+			$quote = '[';
+			$values = new Selectors($find);
+			
+		} else if($group) {
+			// groups use quotes '()'
+			$quote = '(';
+		}
+		
+		return array(
+			'field' => count($fields) > 1 ? $fields : reset($fields), 
+			'value' => count($values) > 1 ? $values : reset($values), 
+			'operator' => $operator, 
+			'not' => $not,
+			'group' => $group,
+			'quote' => $quote, 
+		);
 	}
 
 	/**
@@ -819,6 +1065,29 @@ class Selectors extends WireArray {
 		}
 		return rtrim($s, ", "); 
 	}
+
+	/**
+	 * See if the given $selector specifies the given $field somewhere
+	 * 
+	 * @param array|string|Selectors $selector
+	 * @param string $field
+	 * @return bool
+	 * 
+	public static function selectorHasField($selector, $field) {
+		
+		if(is_object($selector)) $selector = (string) $selector;
+		
+		if(is_array($selector)) {
+			if(array_key_exists($field, $selector)) return true;
+			$test = print_r($selector, true);
+			if(strpos($test, $field) === false) return false; 
+			
+			
+		} else if(is_string($selector)) {
+			if(strpos($selector, $field) === false) return false; // quick exit
+		}
+	}
+	 */
 
 }
 

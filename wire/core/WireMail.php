@@ -1,12 +1,9 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireMail 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * USAGE:
@@ -141,7 +138,7 @@ class WireMail extends WireData implements WireMailInterface {
 	 * 	3. Non-associative array of #1. 
 	 * 	4. Associative array of (email => name)
 	 *	5. NULL (default value, to clear out any previously set values)
-	 * @param string $name Optionally provide a FROM name, applicable
+	 * @param string $name Optionally provide a TO name, applicable
 	 *	only when specifying #1 (single email) for the first argument. 
 	 * @return this 
 	 * @throws WireException if any provided emails were invalid

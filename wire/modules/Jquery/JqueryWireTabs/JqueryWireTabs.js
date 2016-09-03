@@ -1,13 +1,10 @@
 /**
-  * jQuery Tabs for ProcessWire
-  *
-  * ProcessWire 2.x
-  * Copyright (C) 2014 by Ryan Cramer
-  * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
-  *
-  * https://processwire.com
-  *
-  */
+ * jQuery Tabs for ProcessWire
+ *
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
+ * 
+ */
 (function($) {
 
 	$.fn.WireTabs = function(customOptions) {
@@ -21,8 +18,8 @@
 			id: '' // id for tabList. if already exists, existing tabList will be used
 		};
 		
-		if(config.JqueryWireTabs.rememberTabs != "undefined") {
-			options.rememberTabs = config.JqueryWireTabs.rememberTabs;
+		if(ProcessWire.config.JqueryWireTabs.rememberTabs != "undefined") {
+			options.rememberTabs = ProcessWire.config.JqueryWireTabs.rememberTabs;
 		}
 		var totalTabs = 0; 
 
@@ -38,7 +35,7 @@
 			function init() {
 
 				if(!options.items) return;
-				if(options.items.length < 2) return;
+				if(options.items.length < 1) return;
 				
 				if(options.id.length) {
 					$tabList = $("#" + options.id);

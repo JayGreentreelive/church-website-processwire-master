@@ -1,13 +1,12 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * PageAction
  *
  * Base class for Page actions in ProcessWire
  * 
- * ProcessWire 2.x
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
  */
 
@@ -34,7 +33,7 @@ abstract class PageAction extends WireAction implements Module {
 	 *
 	 */
 	public function getItemType() {
-		return 'Page';
+		return strlen(__NAMESPACE__) ? __NAMESPACE__ . '\\Page' : 'Page';
 	}
 
 	/**

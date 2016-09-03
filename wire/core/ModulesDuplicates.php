@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Modules Duplicates
@@ -6,10 +6,7 @@
  * Provides functions for managing sitautions where more than one
  * copy of the same module is intalled. This is a helper for the Modules class.
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -247,10 +244,11 @@ class ModulesDuplicates extends Wire {
 		// update any modules that no longer have duplicates
 		$removals = array();
 		$query = $this->wire('database')->prepare("SELECT `class`, `flags` FROM modules WHERE `flags` & :flag");
-		$query->bindValue(':flag', Modules::flagsDuplicate, PDO::PARAM_INT);
+		$query->bindValue(':flag', Modules::flagsDuplicate, \PDO::PARAM_INT);
 		$query->execute();
 
-		while($row = $query->fetch(PDO::FETCH_NUM)) {
+		/** @noinspection PhpAssignmentInConditionInspection */
+		while($row = $query->fetch(\PDO::FETCH_NUM)) {
 			list($class, $flags) = $row;
 			if(empty($this->duplicates[$class])) {
 				$flags = $flags & ~Modules::flagsDuplicate;
@@ -299,7 +297,9 @@ class ModulesDuplicates extends Wire {
 		} else {
 			$flags = $this->wire('modules')->getFlags($basename);
 		}
-		if(!($installed[$basename]['flags'] & Modules::flagsDuplicate)) {
+		if($flags & Modules::flagsDuplicate) {
+			// flags already represent duplicate status
+		} else {
 			// make database aware this module has multiple files by adding the duplicate flag
 			$this->numNewDuplicates++; // trigger update needed
 			$flags = $flags | Modules::flagsDuplicate;

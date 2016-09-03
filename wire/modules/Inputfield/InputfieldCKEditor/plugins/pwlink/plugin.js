@@ -9,7 +9,7 @@
 			var allowed = 'a[!href,target,name,title,rel]';
 			var required = 'a[href]';
 			
-			var classOptions = config.InputfieldCKEditor.pwlink.classOptions;
+			var classOptions = ProcessWire.config.InputfieldCKEditor.pwlink.classOptions;
 			if(classOptions.length) allowed += "(" + classOptions + ")";
 
 			/*
@@ -77,7 +77,7 @@
 			// add context menu item
 			if (editor.contextMenu) {
 				editor.addMenuItem('pwlinkitem', {
-					label: config.InputfieldCKEditor.pwlink.edit,
+					label: ProcessWire.config.InputfieldCKEditor.pwlink.edit,
 					command: 'pwlink',
 					group: 'link',
 					icon: (CKEDITOR.env.hidpi ? this.path + 'images/hidpi/pwlink.png' : this.path + 'images/pwlink.png')
@@ -96,15 +96,15 @@
 
 	function loadIframeLinkPicker(editor) {
 
-		var $in = $("#Inputfield_id"); 
+		var $in = jQuery("#Inputfield_id"); 
 		if($in.length) {
 			var pageID = $in.val();
 		} else {
-			var pageID = $("#" + editor.name).closest('.Inputfield').attr('data-pid');
+			var pageID = jQuery("#" + editor.name).closest('.Inputfield').attr('data-pid');
 		}
 
 		// language support
-		var $textarea = $('#' + editor.name); // get textarea of this instance
+		var $textarea = jQuery('#' + editor.name); // get textarea of this instance
 		var selection = editor.getSelection(true);
 		var node = selection.getStartElement();
 		var nodeName = node.getName(); // will typically be 'a', 'img' or 'p' 
@@ -114,13 +114,13 @@
 
 		if(nodeName == 'a') {
 			// existing link
-			$existingLink = $(node.$);
+			$existingLink = jQuery(node.$);
 			selectionText = node.getHtml();
 			selection.selectElement(node); 
 
 		} else if(nodeName == 'img') {
 			// linked image
-			var $img = $(node.$);
+			var $img = jQuery(node.$);
 			$existingLink = $img.parent('a'); 
 			selectionText = node.$.outerHTML;
 
@@ -132,7 +132,7 @@
 		}
 	
 		// build the modal URL
-		var modalUrl = config.urls.admin + 'page/link/?id=' + pageID + '&modal=1';
+		var modalUrl = ProcessWire.config.urls.admin + 'page/link/?id=' + pageID + '&modal=1';
 		var $langWrapper = $textarea.closest('.LanguageSupport');
 		if($langWrapper.length) modalUrl += "&lang=" + $langWrapper.data("language");
 		
@@ -152,18 +152,18 @@
 		}
 	
 		// labels
-		var insertLinkLabel = config.InputfieldCKEditor.pwlink.label;
-		var cancelLabel = config.InputfieldCKEditor.pwlink.cancel;
+		var insertLinkLabel = ProcessWire.config.InputfieldCKEditor.pwlink.label;
+		var cancelLabel = ProcessWire.config.InputfieldCKEditor.pwlink.cancel;
 		var $iframe; // set after modalSettings down
 
 		// action when insert link button is clicked
 		function clickInsert() {
 
 			var $i = $iframe.contents();
-			var $a = $($("#link_markup", $i).text());
+			var $a = jQuery(jQuery("#link_markup", $i).text());
 			if($a.attr('href') && $a.attr('href').length) {
 				$a.html(selectionText);
-				var html = $("<div />").append($a).html();
+				var html = jQuery("<div />").append($a).html();
 				editor.insertHtml(html);
 			}
 		
@@ -174,10 +174,10 @@
 		var modalSettings = {
 			title: "<i class='fa fa-link'></i> " + insertLinkLabel,
 			open: function() {
-				if($(".cke_maximized").length > 0) {
+				if(jQuery(".cke_maximized").length > 0) {
 					// the following is required when CKE is maximized to make sure dialog is on top of it
-					$('.ui-dialog').css('z-index', 9999);
-					$('.ui-widget-overlay').css('z-index', 9998);
+					jQuery('.ui-dialog').css('z-index', 9999);
+					jQuery('.ui-widget-overlay').css('z-index', 9998);
 				}
 			},
 			buttons: [ {
@@ -202,9 +202,9 @@
 			$i.find("#ProcessPageEditLinkForm").data('iframe', $iframe);
 		
 			// capture enter key in main URL text input
-			$("#link_page_url", $i).keydown(function(event) {
-				var $this = $(this);
-				var val = $.trim($this.val());
+			jQuery("#link_page_url", $i).keydown(function(event) {
+				var $this = jQuery(this);
+				var val = jQuery.trim($this.val());
 				if (event.keyCode == 13) {
 					event.preventDefault();
 					if(val.length > 0) clickInsert();

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Class PageBookmarks
@@ -94,7 +94,7 @@ class PageBookmarks extends Wire {
 				$options['add'] = null;
 			}
 		} else if($this->wire('user')->isSuperuser()) {
-			$add = new WireData();
+			$add = $this->wire(new WireData());
 			$add->set('_icon', 'bookmark-o');
 			$add->set('title', $this->labels['bookmarks']);
 			$add->set('id', 'bookmark');
@@ -182,7 +182,7 @@ class PageBookmarks extends Wire {
 		$this->process->breadcrumb('../', $this->_($moduleInfo['title']));
 		$this->process->breadcrumb('./', $this->labels['bookmarks']);
 		
-		$role = $roleID ? $this->wire('roles')->get($roleID) : new NullPage();
+		$role = $roleID ? $this->wire('roles')->get($roleID) : $this->wire('pages')->newNullPage();
 		if($roleID && !$role->id) throw new WireException("Unknown role");
 		$allLabel = $this->_('everyone'); // All roles
 		$data = $modules->getModuleConfigData($this->process);
@@ -273,10 +273,10 @@ class PageBookmarks extends Wire {
 
 	/**
 	 * Check and update the given process page for hidden/visible status depending on useBookmarks setting
-	 *
+	 * 
 	 * @param Process $process
 	 * @param Page $page
-	 *
+	 * 
 	 */
 	public function checkProcessPage(Page $page) {
 		$hidden = $page->isHidden();
@@ -290,12 +290,13 @@ class PageBookmarks extends Wire {
 			$page->save();
 		}
 	}
+
 	/**
 	 * Populate any configuration inputfields to the given $inputfields wrapper for $process
-	 *
+	 * 
 	 * @param InputfieldWrapper $inputfields
 	 * @param Process $process
-	 *
+	 * 
 	 */
 	public function addConfigInputfields(InputfieldWrapper $inputfields) {
 		$field = $this->wire('modules')->get('InputfieldCheckbox');

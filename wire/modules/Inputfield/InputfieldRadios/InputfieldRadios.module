@@ -1,4 +1,14 @@
-<?php
+<?php namespace ProcessWire;
+
+/**
+ * ProcessWire Radios Inputfield
+ * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
+ * https://processwire.com
+ * 
+ * @property int $optionColumns Number of columns to display radios in, or 0 for vertical stacked, or 1 for inline (default=0)
+ * 
+ */
 
 class InputfieldRadios extends InputfieldSelect {
 
@@ -34,7 +44,7 @@ class InputfieldRadios extends InputfieldSelect {
 				// don't bother setting a width, we will let them float where they want instead
 				$ulClass = 'InputfieldRadiosFloated';
 			}
-			$out = "\n\t<ul class='$ulClass ui-helper-clearfix'>";
+			$out = "\n\t<ul class='$ulClass pw-clearfix ui-helper-clearfix'>";
 
 		} else {
 			$out = "\n\t<ul class='InputfieldRadiosStacked'>"; 
@@ -43,7 +53,7 @@ class InputfieldRadios extends InputfieldSelect {
 		foreach($options as $key => $value) {
 			$checked = '';
 
-			$id = $this->id . "_" . $this->fuel('sanitizer')->name($key); 
+			$id = $this->id . "_" . $this->wire('sanitizer')->name($key); 
 
 			$attrs = $this->getOptionAttributes($key);
 			if($this->isOptionSelected($key)) $checked = " checked='checked'";
@@ -52,7 +62,11 @@ class InputfieldRadios extends InputfieldSelect {
 			$textClass = 'pw-no-select';
 			if($disabled) $textClass .= ' ui-state-disabled';
 			$attrs = $this->getOptionAttributesString($attrs);
-			if($attrs) $attrs = ' ' . $attrs; 
+			if($attrs) $attrs = ' ' . $attrs;
+			$label = str_replace(' ', ' !wbr!', $value);
+			$label = $this->entityEncode($label, Inputfield::textFormatBasic);
+			$label = str_replace('!wbr!', '<wbr>', $label);
+			$label = "<span class='$textClass'>$label</span>";
 
 			$out .= 
 				"\n\t\t<li$liAttr><label$attrs>" . 
@@ -61,7 +75,7 @@ class InputfieldRadios extends InputfieldSelect {
 				"name='{$this->name}' " . 
 				"id='$id' " .
 				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' />" . 
-				"<span class='$textClass'>" . str_replace(' ', ' <wbr>', $this->entityEncode($value)) ."</span>" . 
+				"<span class='$textClass'>$label</span>" . 
 				"</label></li>";
 		}
 
@@ -81,7 +95,7 @@ class InputfieldRadios extends InputfieldSelect {
 
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields(); 
-		$f = wire('modules')->get('InputfieldInteger');
+		$f = $this->wire('modules')->get('InputfieldInteger');
 		$f->label = $this->_('Columns of Radio Buttons');
 		$f->description = $this->_('If you want the radio buttons to display in columns (rather than stacked), enter the number of columns you want to use (up to 10). To display buttons side-by-side (inline) enter 1.'); 
 		$f->notes = $this->_('If no number is specified here, then each radio button will display on its own line.'); 

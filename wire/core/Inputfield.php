@@ -1,123 +1,246 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
- * ProcessWire Inputfield
- *
- * Base class for Inputfield modules. 
+ * ProcessWire Inputfield - base class for Inputfield modules.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
- */
-
-/**
- * Inputfields that implement this interface always have a $value attribute that is an array
- *
- */
-interface InputfieldHasArrayValue { }
-
-
-/**
- * An Inputfield an actual form input field widget, and this is provided as the base class
+ * An Inputfield for an actual form input field widget, and this is provided as the base class
  * for different kinds of form input widgets provided as modules. 
  *
  * The class supports a parent/child hierarchy so that a given Inputfield can contain Inputfields
  * below it. An example would be the relationship between fieldsets and fields in a form. 
+ * Parent Inputfields are almost always of type InputfieldWrapper. 
  *
- * An Inputfield is typically associated with a Fieldtype module. 
+ * An Inputfield is typically associated with a Fieldtype module when used for ProcessWire fields. 
+ * Most Inputfields can also be used on their own. 
  *
- * All Inputfields have the following properties at minimum: 
- *
- * Inputfield::id 
- * 	A unique string identifier for this Inputfield
- *
- * Inputfield::class
- *	Class name(s) to be rendered with the Inputfield XHTML output
- *
- * Inputfield::name
- * 	Corresponds to XHTML "name" attribute
- *
- * Inputfield::value
- *	The current value of the field. May correspond go the XHTML "value" attribute on some inputs. 
- *
- * @property string $name HTML 'name' attribute for Inputfield (required). 
- * @property string $id HTML 'id' attribute for the Inputfield (value is set automatically). 
- * @property mixed $value HTML 'value' attribute for the Inputfield. 
- * @property string $class HTML 'class' attribute for the Inputfield, but it is better to use the addClass() method. 
- *
- * @property string $label Inputfield label 
- * @property string $description Optional description (appears under label to provide more detailed label/description).
- * @property string $notes Optional notes (appears under input area to provide additional notes).
- * @property string $icon Optional font-awesome icon name to accompany label. 
- * @property string $head Optional text that appears below label but above description (only used by some Inputfields). 
- * @property int|bool $required Set to 1 to make input required, or 0 to make not required (default). 
- * @property string $requiredIf Optional conditions under which input is required (selector string). 
- * @property string $showIf Optional conditions under which the Inputfield appears in the form (selector string). 
- * @property int $collapsed Whether the field is collapsed or visible, i.e. Inputfield::collapsedYes, Inputfield::collapsedBlank, etc., see the 'collapsed' constants in Inputfield class. 
- * @property int $columnWidth Width of column for this Inputfield 10-100 percent. 0 is assumed to be 100 (default). 
- * @property int $skipLabel Skip display of the label? See the skipLabel constants for options. 
- * @property string $wrapClass Optional class name (CSS) to apply to the HTML element wrapping the Inputfield.
- * @property string $headerClass Optional class name (CSS) to apply to the InputfieldHeader element
- * @property string $contentClass Optional class name (CSS) to apply to the InputfieldContent element
- * @property InputfieldWrapper|null $parent The parent InputfieldWrapper for this Inputfield or null if not set. 
- * @property null|Fieldtype $hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
- * @property null|bool $entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
- * @property null|bool $entityEncodeText Set to boolean false to specifically disable entity encoding for other text (description, notes, etc.)
- * @property bool|null $useLanguages When multi-language support active, can be set to true to make it provide inputs for each language (where supported).
- * @property string|null $prependMarkup Optional markup to prepend to the inputfield content container. 
- * @property string|null $appendMarkup Optional markup to append to the inputfield content container. 
- * @property int $textFormat Formatting applied to description and notes, see textFormat constants. 
+ * #pw-order-groups attribute-methods,attribute-properties,settings,traversal,labels,appearance,behavior,other,output,input,states
+ * #pw-use-constants
+ * #pw-summary Inputfield is the base class for modules that collect user input for fields.
+ * #pw-summary-attribute-properties These properties are retrieved or manipulated via the attribute methods above.
+ * #pw-summary-textFormat-constants Constants for formats allowed in description, notes, label.
+ * #pw-summary-collapsed-constants Constants allowed for the `Inputfield::collapsed` property.
+ * #pw-summary-skipLabel-constants Constants allowed for the `Inputfield::skipLabel` property.
+ * #pw-summary-renderValue-constants Options for `Inputfield::renderValueFlags` property, applicable `Inputfield::renderValue()` method call.
+ * #pw-summary-module Methods primarily of interest during module development. 
  * 
+ * #pw-body =
+ * ~~~~~
+ * // Create an Inputfield
+ * $inputfield = $modules->get('InputfieldText');
+ * $inputfield->label = 'Your Name';
+ * $inputfield->attr('name', 'your_name');
+ * $inputfield->attr('value', 'Roderigo');
+ * // Add to a $form (InputfieldForm or InputfieldWrapper)
+ * $form->add($inputfield); 
+ * ~~~~~
+ * #pw-body
+ * 
+ * ATTRIBUTES
+ * ==========
+ * @property string $name HTML 'name' attribute for Inputfield (required). #pw-group-attribute-properties
+ * @property string $id HTML 'id' attribute for the Inputfield (if not yet, determined automatically). #pw-group-attribute-properties
+ * @property mixed $value HTML 'value' attribute for the Inputfield. #pw-group-attribute-properties
+ * @property string $class HTML 'class' attribute for the Inputfield. #pw-group-attribute-properties
+ * 
+ * LABELS & CONTENT
+ * ================
+ * @property string $label Primary label text that appears above the input. #pw-group-labels
+ * @property string $description Optional description that appears under label to provide more detailed information. #pw-group-labels
+ * @property string $notes Optional notes that appear under input area to provide additional notes. #pw-group-labels
+ * @property string $icon Optional font-awesome icon name to accompany label (excluding the "fa-") part). #pw-group-labels
+ * @property string $head Optional text that appears below label but above description (only used by some Inputfields). #pw-internal
+ * @property string|null $prependMarkup Optional markup to prepend to the Inputfield content container. #pw-group-other
+ * @property string|null $appendMarkup Optional markup to append to the Inputfield content container. #pw-group-other
+ * 
+ * APPEARANCE
+ * ==========
+ * @property int $collapsed Whether the field is collapsed or visible, using one of the "collapsed" constants. #pw-group-appearance
+ * @property string $showIf Optional conditions under which the Inputfield appears in the form (selector string).  #pw-group-appearance
+ * @property int $columnWidth Width of column for this Inputfield 10-100 percent. 0 is assumed to be 100 (default). #pw-group-appearance
+ * @property int $skipLabel Skip display of the label? See the "skipLabel" constants for options. #pw-group-appearance
+ * 
+ * SETTINGS & BEHAVIOR
+ * ===================
+ * @property int|bool $required Set to true (or 1) to make input required, or false (or 0) to make not required (default=0). #pw-group-behavior
+ * @property string $requiredIf Optional conditions under which input is required (selector string). #pw-group-behavior
+ * @property InputfieldWrapper|null $parent The parent InputfieldWrapper for this Inputfield or null if not set. #pw-internal
+ * @property null|bool|Fieldtype $hasFieldtype The Fieldtype using this Inputfield, or boolean false when known not to have a Fieldtype, or null when not known. #pw-group-other
+ * @property bool|null $useLanguages When multi-language support active, can be set to true to make it provide inputs for each language, where supported (default=false). #pw-group-behavior
+ * @property null|bool $entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label (default=true). #pw-group-output
+ * @property null|bool $entityEncodeText Set to boolean false to specifically disable entity encoding for other text: description, notes, etc. (default=true). #pw-group-output
+ * @property int $renderValueFlags Options that can be applied to renderValue mode, see "renderValue" constants (default=0). #pw-group-output
+ * @property string $wrapClass Optional class name (CSS) to apply to the HTML element wrapping the Inputfield. #pw-group-other
+ * @property string $headerClass Optional class name (CSS) to apply to the InputfieldHeader element #pw-group-other
+ * @property string $contentClass Optional class name (CSS) to apply to the InputfieldContent element #pw-group-other
+ *
+ * HOOKABLE METHODS
+ * ================
  * @method string render()
  * @method string renderValue()
  * @method Inputfield processInput(WireInputData $input)
  * @method InputfieldWrapper getConfigInputfields()
  * @method array getConfigArray()
  * @method array getConfigAllowContext(Field $field)
- * @method array exportConfigData(array $data)
- * @method array importConfigData(array $data)
+ * @method array exportConfigData(array $data) #pw-internal
+ * @method array importConfigData(array $data) #pw-internal
  * 
  */
 abstract class Inputfield extends WireData implements Module {
 
-	/** 
-	 * Constants for the standard Inputfield 'collapsed' setting
-	 *
-	 */
-	const collapsedNo = 0; 		// will display 'open'
-	const collapsedYes = 1; 	// will display collapsed, requiring a click to open
-	const collapsedBlank = 2; 	// will display collapsed only if blank
-	const collapsedHidden = 4; 	// will not be rendered in the form
-	const collapsedPopulated = 5; 	// will display collapsed only if populated
-	const collapsedNoLocked = 7;	// value is visible but not editable
-	const collapsedYesLocked = 8;  	// value is collapsed but not editable, otherwise same as collapsedYes
-	const collapsedLocked = 8; 	// for backwards compatibility
-	const collapsedNever = 9; // input may not be collapsed
-	const collapsedYesAjax = 10; // collapsed and dynamically loaded by ajax when opened
-	const collapsedBlankAjax = 11; // collapsed when blankn and dynamically loaded by ajax when opened
+	/**
+	 * Not collapsed (display as "open", default)
+	 * #pw-group-collapsed-constants
+	 * 
+	 */	
+	const collapsedNo = 0;
 
 	/**
-	 * Constants for skipLabel setting
-	 *
-	 */
-	const skipLabelNo = false; 	// don't skip the label at all (default)
-	const skipLabelFor = true; 	// don't use a 'for' attribute with the <label>
-	const skipLabelHeader = 2; 	// don't use a ui-widget-header label at all
-	const skipLabelBlank = 4; 	// skip the label only when blank
-
-	/**
-	 * Formats allowed in description, notes, label
+	 * Collapsed unless opened
+	 * #pw-group-collapsed-constants
 	 * 
 	 */
-	const textFormatNone = 2;		// no type of markdown or HTML allowed
-	const textFormatBasic = 4;		// only basic/inline markdown and no HTML (default setting for Inputfields)
-	const textFormatMarkdown = 8;	// full markdown support with HTML also allowed
+	const collapsedYes = 1; 
+
+	/**
+	 * Collapsed only when blank
+	 * #pw-group-collapsed-constants
+	 * 
+	 */
+	const collapsedBlank = 2;
+
+	/**
+	 * Hidden, not rendered in the form at all
+	 * #pw-group-collapsed-constants
+	 * 
+	 */
+	const collapsedHidden = 4;
+
+	/**
+	 * Collapsed only when populated
+	 * #pw-group-collapsed-constants
+	 * 
+	 */
+	const collapsedPopulated = 5;
+
+	/**
+	 * Not collapsed, value visible but not editable
+	 * #pw-group-collapsed-constants
+	 * 
+	 */
+	const collapsedNoLocked = 7;
+
+	/**
+	 * Collapsed unless opened (value becomes visible but not editable)
+	 * #pw-group-collapsed-constants
+	 * 
+	 */
+	const collapsedYesLocked = 8;
+
+	/**
+	 * Same as collapsedYesLocked, for backwards compatibility
+	 * #pw-internal
+	 * 
+	 */
+	const collapsedLocked = 8;
+
+	/**
+	 * Never collapsed, and not collapsible
+	 * #pw-group-collapsed-constants
+	 * 
+	 */
+	const collapsedNever = 9;
+
+	/**
+	 * Collapsed and dynamically loaded by AJAX when opened
+	 * #pw-group-collapsed-constants
+	 * 
+	 */
+	const collapsedYesAjax = 10; 
+
+	/**
+	 * Collapsed only when blank, and dynamically loaded by AJAX when opened
+	 * #pw-group-collapsed-constants
+	 * 
+	 */
+	const collapsedBlankAjax = 11;
+
+	/**
+	 * Don't skip the label (default)
+	 * #pw-group-skipLabel-constants
+	 *
+	 */
+	const skipLabelNo = false;
+
+	/**
+	 * Don't use a "for" attribute with the <label>
+	 * #pw-group-skipLabel-constants
+	 *
+	 */
+	const skipLabelFor = true;
 	
 	/**
+	 * Don't use a label header element at all (basically, skip the label)
+	 * #pw-group-skipLabel-constants
+	 *
+	 */
+	const skipLabelHeader = 2;
+	
+	/**
+	 * Skip rendering of the label when it is blank
+	 * #pw-group-skipLabel-constants
+	 *
+	 */
+	const skipLabelBlank = 4;
+
+	/**
+	 * Plain text: no type of markdown or HTML allowed
+	 * #pw-group-textFormat-constants
+	 * 
+	 */
+	const textFormatNone = 2;
+
+	/**
+	 * Only allow basic/inline markdown, and no HTML (default)
+	 * #pw-group-textFormat-constants
+	 *
+	 */
+	const textFormatBasic = 4;
+	
+	/**
+	 * Full markdown support with HTML also allowed
+	 * #pw-group-textFormat-constants
+	 *
+	 */
+	const textFormatMarkdown = 8;
+
+	/**
+	 * Render only the minimum output when in "renderValue" mode.
+	 * #pw-group-renderValue-constants
+	 * 
+	 */
+	const renderValueMinimal = 2;
+	
+	/**
+	 * Indicates a parent InputfieldWrapper is not required when rendering value. 
+	 * #pw-group-renderValue-constants
+	 *
+	 */
+	const renderValueNoWrap = 4;
+	
+	/**
+	 * If there are multiple items, only render the first (where supported by the Inputfield). 
+	 * #pw-group-renderValue-constants
+	 *
+	 */
+	const renderValueFirst = 8;
+
+	/**
 	 * The total number of Inputfield instances, kept as a way of generating unique 'id' attributes
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	static protected $numInstances = 0;
@@ -138,7 +261,15 @@ abstract class Inputfield extends WireData implements Module {
 	 * Attributes specified for the XHTML output, like class, rows, cols, etc. 
 	 *
 	 */
-	protected $attributes = array(); 
+	protected $attributes = array();
+
+	/**
+	 * Attributes that accompany this Inputfield's wrapping element
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $wrapAttributes = array();
 
 	/**
 	 * The parent Inputfield, if applicable
@@ -185,6 +316,7 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('headerClass', ''); // optional class to apply to InputfieldHeader wrapper
 		$this->set('contentClass', ''); // optional class to apply to InputfieldContent wrapper
 		$this->set('textFormat', self::textFormatBasic); // format applied to description and notes
+		$this->set('renderValueFlags', 0); // see renderValue* constants, applicable to renderValue mode only
 
 		// default ID attribute if no 'id' attribute set
 		$this->defaultID = $this->className() . self::$numInstances; 
@@ -198,38 +330,33 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Get information about this module
-	 *
-	public static function getModuleInfo() {
-		return array(
-			'title' => '',
-			'version' => 1, 
-			'summary' => '', 
-			); 
-	}
-	 */
-
-	/**
-	 * Per the Module interface, init() is called when the system is ready for API usage
+	 * Per the Module interface, init() is called after any configuration data has been populated to the Inputfield, but before render. 
+	 * 
+	 * #pw-group-module
 	 *
 	 */
-	public function init() { 
-	}
+	public function init() { }
 
 	/**
-	 * Per the Module interface, install() is called when this Inputfield is instally installed
-	 *
+	 * Per the Module interface, this method is called when this Inputfield is installed
+	 * 
+	 * #pw-group-module
+	 * 
 	 */
 	public function ___install() { }
 
 	/**
 	 * Per the Module interface, uninstall() is called when this Inputfield is uninstalled
+	 * 
+	 * #pw-group-module
 	 *
 	 */
 	public function ___uninstall() { }
 
 	/**
 	 * Multiple instances of a given Inputfield may be needed
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isSingular() {
@@ -238,6 +365,8 @@ abstract class Inputfield extends WireData implements Module {
 
 	/**
 	 * Inputfields are not loaded until requested
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isAutoload() {
@@ -245,7 +374,18 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Set the Inputfield's parent, set a new/existing attribute, or set a custom data value
+	 * Set a property or attribute to the Inputfield
+	 * 
+	 * - Use this for setting properties like parent, collapsed, required, columnWidth, etc. 
+	 * - You can also set properties directly via `$inputfield->property = $value`.
+	 * - If setting an attribute (like name, id, etc.) this will work, but it is preferable to use the `Inputfield::attr()` method. 
+	 * - If setting any kind of "class" it is preferable to use the `Inputfield::addClass()` method. 
+	 * 
+	 * #pw-group-settings
+	 * 
+	 * @param string $key Name of property to set
+	 * @param mixed $value Value of property
+	 * @return $this
 	 *
 	 */
 	public function set($key, $value) {
@@ -264,15 +404,20 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Get a field attribute, label, description, parent, fuel or setting
+	 * Get a property or attribute from the Inputfield
 	 *
-	 * In cases where there are potential name conflicts, you may prefer to use a more specific method
-	 * like getSetting() or getAttribute().
-	 *
-	 * This method is also tied into __get() like all WireData classes.
+	 * - This can also be accessed directly, i.e. `$value = $inputfield->property;`. 
 	 * 
-	 * @param string $key
-	 * @return mixed
+	 * - For getting attribute values, this will work but it is preferable to use the `Inputfield::attr()` method. 
+	 * 
+	 * - For getting non-attribute values that have potential name conflicts with attributes (or just as a 
+	 *   reliable alternative), use the `Inputfield::getSetting()` method instead, which excludes the possibility
+	 *   of overlap with attributes. 
+	 * 
+	 * #pw-group-settings
+	 *
+	 * @param string $key Name of property or attribute to retrieve. 
+	 * @return mixed|null Value of property or attribute, or NULL if not found. 
 	 *
 	 */ 
 	public function get($key) {	
@@ -282,16 +427,21 @@ abstract class Inputfield extends WireData implements Module {
 		}
 		if($key == 'attributes') return $this->attributes; 
 		if($key == 'parent') return $this->parent; 
-		if(($value = $this->getFuel($key)) !== null) return $value; 
+		if(($value = $this->wire($key)) !== null) return $value; 
 		if(array_key_exists($key, $this->attributes)) return $this->attributes[$key]; 
 		return parent::get($key); 
 	}
 
 	/**
-	 * Gets a setting or fuel from the Inputfield, while ignoring attributes and anything else
+	 * Gets a setting (or API variable) from the Inputfield, while ignoring attributes.
 	 *
-	 * To be used in cases where there is a potential name conflict, like the 'collapsed' field when in the Fields editor.
-	 * Otherwise don't bother using this method. 
+	 * This is good to use in cases where there are potential name conflicts, like when there is a field literally 
+	 * named "collapsed" or "required".
+	 * 
+	 * #pw-group-settings
+	 * 
+	 * @param string $key Name of setting or API variable to retrieve.
+	 * @return mixed Value of setting or API variable, or NULL if not found. 
 	 *
 	 */
 	public function getSetting($key) {
@@ -299,10 +449,13 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Set the parent of this Inputfield
+	 * Set the parent (InputfieldWrapper) of this Inputfield.
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @param InputfieldWrapper $parent
 	 * @return $this
+	 * @see Inputfield::getParent()
 	 *
 	 */
 	public function setParent(InputfieldWrapper $parent) {
@@ -311,9 +464,12 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Get this Inputfield's parent Inputfield, or NULL if it doesn't have one
+	 * Get this Inputfield’s parent InputfieldWrapper, or NULL if it doesn’t have one.
+	 * 
+	 * #pw-group-traversal
 	 *
-	 * @return Inputfield|NULL
+	 * @return InputfieldWrapper|null
+	 * @see Inputfield::setParent()
 	 *
 	 */
 	public function getParent() {
@@ -321,9 +477,12 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Get array of all parents
+	 * Get array of all parents of this Inputfield.
 	 * 
-	 * @return array
+	 * #pw-group-traversal
+	 * 
+	 * @return array of InputfieldWrapper elements.
+	 * @see Inputfield::getParent(), Inputfield::setParent()
 	 * 
 	 */
 	public function getParents() {
@@ -335,23 +494,42 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Set a Formfield attribute to accompany this Inputfield's output
+	 * Set an attribute 
 	 *
-	 * The key may contain multiple keys by being specified as an array, or by being a string with multiple keys separated by "+" signs
-	 * i.e. setAttribute("id+name", "template"); 
+	 * - For most public API use, you might consider using the the shorter `Inputfield::attr()` method instead. 
+	 * 
+	 * - When setting the `class` attribute is is preferable to use the `Inputfield::addClass()` method. 
+	 * 
+	 * - The `$key` argument may contain multiple keys by being specified as an array, or by being a string with multiple 
+	 *   keys separated by "+" or "|", for example: `$inputfield->setAttribute("id+name", "template")`.
+	 * 
+	 * - If the `$value` argument is an array, it will instruct the attribute to hold multiple values. 
+	 *   Future calls to setAttribute() will enforce the array type for that attribute. 
+	 * 
+	 * ~~~~~
+	 * // Set the name attribute
+	 * $inputfield->setAttribute('name', 'my_field_name'); 
+	 * 
+	 * // Set the name and id attributes at the same time
+	 * $inputfield->setAttribute('name+id', 'my_field_name'); 
+	 * ~~~~~
+	 * 
+	 * #pw-internal Giving public API preference to the attr() method instead
 	 *
-	 * If the value param is an array, then it will instruct the attribute to hold multiple values. Future calls to setAttribute()
-	 * will enforce the array type for that attribute. 
-	 *
-	 * @param string|array $key
-	 * @param string|int $value
+	 * @param string|array $key Specify one of the following:
+	 *   - Name of attribute (string)
+	 *   - Names of attributes (array)
+	 *   - String with names of attributes split by "+" or "|"
+	 * @param string|int|array $value Value of attribute to set. 
 	 * @return $this
+	 * @see Inputfield::attr(), Inputfield::removeAttr(), Inputfield::addClass()
 	 *
 	 */
 	public function setAttribute($key, $value) {
 		
 		if(is_array($key)) $keys = $key; 
-			else if(strpos($key, '+')) $keys = explode('+', $key); 
+			else if(strpos($key, '+') !== false) $keys = explode('+', $key); 
+			else if(strpos($key, '|') !== false) $keys = explode('|', $key); 
 			else $keys = array($key); 
 
 		foreach($keys as $key) {
@@ -386,9 +564,12 @@ abstract class Inputfield extends WireData implements Module {
 
 	/**
 	 * Remove an attribute
+	 * 
+	 * #pw-group-attribute-methods
 	 *
-	 * @param string $key
-	 * @return this
+	 * @param string $key Name of attribute to remove.
+	 * @return $this
+	 * @see Inputfield::attr(), Inputfield::removeClass()
 	 *
 	 */ 
 	public function removeAttr($key) {
@@ -397,10 +578,12 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Remove an attribute (alias of removeAttr for syntax consistency with setAttribute)
+	 * Remove an attribute (alias)
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $key
-	 * @return this
+	 * @return $this
 	 *
 	 */ 
 	public function removeAttribute($key) {
@@ -408,7 +591,12 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Just like setAttribute except that it accepts an associatve array of values to set
+	 * Set multiple attributes at once with an associative array.
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param array $attributes Associative array of attributes to set. 
+	 * @return $this
 	 *
 	 */
 	public function setAttributes(array $attributes) {
@@ -417,27 +605,66 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Set or get a Formfield attribute (multipurpose combination of setAttribute and getAttribute)
+	 * Get or set an attribute (or multiple attributes)
 	 *
-	 * If setting, this functions exactly the same as setAttribute(), and is just a shorter front end for it. 
-	 * Alternatively, you may specify an an associative array of values to set for the $key param.
-	 * If getting an attribute, then don't specify the second $value param.
-	 *
-	 * @param string|array $key If an array, then all keyed values in the array will be set. 
-	 * @param string|int|null $value Optional - Omit if setting an array in the key, or if getting a value. 
-	 * @return $this|string|int If setting an attribute, it returns this instance. If getting an attribute, the attribute is returned. 
+	 * - To get an attribute call this method with just the attribute name. 
+	 * - To set an attribute call this method with the attribute name and value to set.
+	 * - You can also set multiple attributes at once, see examples below. 
+	 * - To get all attributes, just specify boolean true as first argument (since 3.0.16).
+	 * 
+	 * ~~~~~
+	 * // Get the "value" attribute
+	 * $value = $inputfield->attr('value');
+	 * 
+	 * // Set the "value" attribute
+	 * $inputfield->attr('value', 'Foo and Bar'); 
+	 * 
+	 * // Set multiple attributes
+	 * $inputfield->attr([
+	 *   'name' => 'foobar', 
+	 *   'value' => 'Foo and Bar',
+	 *   'class' => 'foo-bar', 
+	 * ]);
+	 * 
+	 * // Set name and id attribute to "foobar"
+	 * $inputfield->attr("name+id", "foobar"); 
+	 * 
+	 * // Get all attributes in associative array (since 3.0.16)
+	 * $attrs = $inputfield->attr(true); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-attribute-methods
+	 * 
+	 * @param string|array|bool $key Specify one of the following: 
+	 *   - Name of attribute to get (if getting an attribute). 
+	 *   - Name of attribute to set (if setting an attribute, and also specifying a value). 
+	 *   - Aassociative array to set multiple attributes. 
+	 *   - String with attributes split by "+" or "|" to set them all to have the same value. 
+	 *   - Specify boolean true to get all attributes in an associative array.
+	 * @param string|int|null $value Value to set (if setting), omit otherwise. 
+	 * @return mixed|$this If setting an attribute, it returns this instance. If getting an attribute, the attribute is returned. 
+	 * @see Inputfield::removeAttr(), Inputfield::addClass(), Inputfield::removeClass()
 	 *
 	 */
 	public function attr($key, $value = null) {
 		if(is_null($value)) {
-			if(is_array($key)) return $this->setAttributes($key); 
-				else return $this->getAttribute($key); 
+			if(is_array($key)) {
+				return $this->setAttributes($key);
+			} else if(is_bool($key)) {
+				return $this->getAttributes();
+			} else {
+				return $this->getAttribute($key);
+			}
 		}
 		return $this->setAttribute($key, $value); 
 	}
-
+	
 	/**
 	 * Get all attributes specified for this Inputfield
+	 * 
+	 * #pw-internal
+	 * 
+	 * @return array
 	 *
 	 */
 	public function getAttributes() {
@@ -450,6 +677,11 @@ abstract class Inputfield extends WireData implements Module {
 
 	/**
 	 * Get a specified attribute for this Inputfield
+	 * 
+	 * #pw-internal Public API should use the attr() method instead, but this is here for consistency with setAttribute()
+	 * 
+	 * @param string $key
+	 * @return mixed|null
 	 *
 	 */
 	public function getAttribute($key) {
@@ -457,80 +689,256 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Add the given classname to this inputfield
+	 * Get or set attribute for the element wrapping this Inputfield
 	 * 
-	 * @param string $class
-	 * @param string $property Optionally specify property you want to add class to (default=class)
+	 * Use this method when you need to assign some attribute to the outer wrapper of the Inputfield. 
+	 * 
+	 * #pw-group-attribute-methods
+	 * 
+	 * @param string|null|bool $key Specify one of the following for $key: 
+	 *   - Specify string containing name of attribute to set.
+	 *   - Omit (or null or true) to get all wrap attributes as associative array.
+	 * @param string|null|bool $value Specify one of the following for $value:
+	 *   - Omit if getting an attribute. 
+	 *   - Value to set for $key of setting. 
+	 *   - Boolean false to remove the attribute specified for $key. 
+	 * @return string|array|$this Returns one of the following: 
+	 *   - If getting, returns attribute value of NULL if not present. 
+	 *   - If setting, returns $this.
+	 * @see Inputfield::attr(), Inputfield::addClass()
+	 * 
+	 */
+	public function wrapAttr($key = null, $value = null) {
+		if(is_null($value)) {
+			if(is_null($key) || is_bool($key)) {
+				return $this->wrapAttributes;
+			} else {
+				return isset($this->wrapAttributes[$key]) ? $this->wrapAttributes[$key] : null;
+			}
+		} else if($value === false) {
+			unset($this->wrapAttributes[$key]);
+			return $this;
+		} else {
+			if(strlen($key)) $this->wrapAttributes[$key] = $value;
+			return $this;
+		}
+	}
+
+	/**
+	 * Add a class or classes to this Inputfield (or a wrapping element)
+	 * 
+	 * If given a class name that's already present, it won't be added again. 
+	 * 
+	 * ~~~~~
+	 * // Add class "foobar" to input element
+	 * $inputfield->addClass('foobar'); 
+	 * 
+	 * // Add three classes to input element
+	 * $inputfield->addClass('foo bar baz'); 
+	 * 
+	 * // Add class "foobar" to .Inputfield wrapping element
+	 * $inputfield->addClass('foobar', 'wrapClass'); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-attribute-methods
+	 * 
+	 * @param string|array $class Specify one of the following:
+	 *   - Class name you want to add.
+	 *   - Multiple space-separated class names you want to add.
+	 *   - Array of class names you want to add (since 3.0.16).
+	 * @param string $property Optionally specify the type of class you want to add: 
+	 *   - Omit for the default (which is "class"). 
+	 *   - `class` (string): Add class to the input element (or whatever the Inputfield default is). 
+	 *   - `wrapClass` (string): Add class to ".Inputfield" wrapping element, the most outer level element used for this Inputfield. 
+	 *   - `headerClass` (string): Add class to ".InputfieldHeader" label element. 
+	 *   - `contentClass` (string): Add class to ".InputfieldContent" wrapping element. 
+	 *   - Or some other named class attribute designated by a descending Inputfield.
 	 * @return $this
+	 * @throws WireException when given invalid arguments
+	 * @see Inputfield::hasClass(), Inputfield::removeClass()
 	 * 
 	 */
 	public function addClass($class, $property = 'class') {
-		if($property == 'contentClass') {
-			$value = $this->contentClass;
-		} else if($property == 'wrapClass') {
-			$value = $this->wrapClass;
-		} else if($property == 'headerClass') {
-			$value = $this->headerClass;
-		} else {
-			$property = 'class';
+	
+		// determine which type of class we are adding, and get existing value
+		if($property == 'class' || empty($property)) {
 			$value = $this->getAttribute('class');
+		} else if($property == 'contentClass' || $property == 'content') {
+			$value = $this->contentClass;
+		} else if($property == 'wrapClass' || $property == 'wrap') {
+			$value = $this->wrapClass;
+		} else if($property == 'headerClass' || $property == 'header') {
+			$value = $this->headerClass;
+		} else if(!is_string($property)) { 
+			throw new WireException("addClass() property name must be a string");
+		} else {
+			// some other class property unknown by this base class
+			$value = $this->getSetting($property); 
+			if(!is_string($value) && !is_null($value)) throw new WireException("Invalid class property for addClass()"); 
+			if(is_null($value)) $value = '';
 		}
-		$c = explode(' ', $value); 
-		$c[] = $class;
-		$value = implode(' ', $c); 
+	
+		// classes is array of current classes
+		$classes = explode(' ', $value); 
+
+		// addClasses is array of classes being added
+		$addClasses = is_array($class) ? $class : explode(' ', $class); 
+	
+		// add to $classes array
+		foreach($addClasses as $addClass) {
+			$addClass = trim($addClass); 
+			if(!strlen($addClass)) continue;
+			if(in_array($addClass, $classes)) continue; // if already present, don't add it
+			$classes[] = $addClass;
+		}
+	
+		// convert back to string
+		$value = implode(' ', $classes); 
+	
+		// set back to Inputfield
 		if($property == 'class') {
 			$this->attributes['class'] = $value;
 		} else {
 			$this->set($property, $value); 
 		}
+		
 		return $this;
 	}
 
 	/**
-	 * Does this inputfield have the given class?
+	 * Does this Inputfield have the given class name (or names)?
 	 * 
-	 * @param $class
-	 * @param string $property Optionally specify property you want to pull class from (default=class)
+	 * ~~~~~
+	 * if($inputfield->hasClass('foo')) {
+	 *   // This Inputfield has a class attribute with "foo"
+	 * }
+	 * 
+	 * if($inputfield->hasClass('bar', 'wrapClass')) {
+	 *   // This .Inputfield wrapper has a class attribute with "bar"
+	 * }
+	 * 
+	 * if($inputfield->hasClass('foo bar')) {
+	 *   // This Inputfield has both "foo" and "bar" classes (Since 3.0.16)
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-group-attribute-methods
+	 * 
+	 * @param string|array $class Specify class name or one of the following: 
+	 *   - String containing name of class you want to check (string). 
+	 *   - String containing Space separated string class names you want to check, all must be present for 
+	 *     this method to return true. (Since 3.0.16)
+	 *   - Array of class names you want to check, all must be present for this method to return true. (Since 3.0.16)
+	 * @param string $property Optionally specify property you want to pull class from:
+	 *   - `class` (string): Default setting. Class for the input element (or whatever the Inputfield default is).
+	 *   - `wrapClass` (string): Class for the ".Inputfield" wrapping element, the most outer level element used for this Inputfield.
+	 *   - `headerClass` (string): Class for the ".InputfieldHeader" label element.
+	 *   - `contentClass` (string): Class for the ".InputfieldContent" wrapping element. 
+	 *   - Or some other class property defined by a descending Inputfield class. 
 	 * @return bool
+	 * @see Inputfield::addClass(), Inputfield::removeClass()
 	 * 
 	 */
 	public function hasClass($class, $property = 'class') {
+		
+		if(is_string($class)) $class = trim($class);
+
+		// checking multiple classes
+		if(is_array($class) || strpos($class, ' ')) {
+			$classes = is_string($class) ? explode(' ', $class) : $class;
+			if(!count($classes)) return false;
+			$n = 0;
+			foreach($classes as $c) {
+				$c = trim($c);
+				if(empty($c) || $this->hasClass($c, $property)) $n++;
+			}
+			// return whether it had all the given classes
+			return $n === count($classes); 	
+		}
+	
+		// checking single class
 		if($property == 'class') {
 			$value = explode(' ', $this->getAttribute('class'));
 		} else {
 			$value = explode(' ', $this->$property);
 		}
+		
 		return in_array($class, $value); 
 	}
 
 	/**
-	 * Remove the given classname from this inputfield
+	 * Remove the given class (or classes) from this Inputfield
+	 * 
+	 * ~~~~~
+	 * // Remove the "foo" class
+	 * $inputfield->removeClass('foo'); 
+	 * 
+	 * // Remove both the "foo" and "bar" classes (since 3.0.16)
+	 * $inputfield->removeClass('foo bar'); 
+	 * 
+	 * // Remove the "bar" class from the wrapping .Inputfield element
+	 * $inputfield->removeClass('bar', 'wrapClass'); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-attribute-methods
 	 *
-	 * @param string $class
-	 * @param string $property
+	 * @param string $class Class name you want to remove or specify one of the following:
+	 *   - Single class name to remove.
+	 *   - Space-separated class names you want to remove (Since 3.0.16).
+	 *   - Array of class names you want to remove (Since 3.0.16).
+	 * @param string $property Optionally specify the property you want to remove class from:
+	 *   - `class` (string): Default setting. Class for the input element (or whatever the Inputfield default is).
+	 *   - `wrapClass` (string): Class for the ".Inputfield" wrapping element, the most outer level element used for this Inputfield.
+	 *   - `headerClass` (string): Class for the ".InputfieldHeader" label element.
+	 *   - `contentClass` (string): Class for the ".InputfieldContent" wrapping element.
+	 *   - Or some other class property defined by a descending Inputfield class. 
 	 * @return $this
+	 * @see Inputfield::addClass(), Inputfield::hasClass()
 	 *
 	 */
 	public function removeClass($class, $property = 'class') {
+		
 		if($property == 'class') {
-			$c = explode(' ', $this->getAttribute('class'));
+			$classes = explode(' ', $this->getAttribute('class'));
 		} else {
-			$c = explode(' ', $this->$property); 
+			$classes = explode(' ', $this->$property); 
 		}
-		$key = array_search($class, $c);
-		if($key !== false) unset($c[$key]);
+
+		$removeClasses = is_array($class) ? $class : explode(' ', $class); 
+		
+		foreach($removeClasses as $removeClass) {
+			if(!strlen($removeClass)) continue;
+			$key = array_search($removeClass, $classes);
+			if($key !== false) unset($classes[$key]);
+		}
+		
 		if($property == 'class') {
-			$this->attributes['class'] = implode(' ', $c);
+			$this->attributes['class'] = implode(' ', $classes);
 		} else {
-			$this->set($property, implode(' ', $c)); 
+			$this->set($property, implode(' ', $classes));
 		}
+		
 		return $this;
 	}
 
 	/**
-	 * Get an XHTML ready string of all this Inputfield's attributes
+	 * Get an HTML-ready string of all this Inputfield’s attributes
+	 * 
+	 * ~~~~~
+	 * // Outputs: name="foo" value="bar" class="baz"
+	 * echo $inputfield->getAttributesString([
+	 *   'name' => 'foo',
+	 *   'value' => 'bar',
+	 *   'class' => 'baz'
+	 * ]);
+	 * 
+	 * // Outputs actual attributes specified with this Inputfield
+	 * echo $inputfield->getAttributesString();
+	 * ~~~~~
+	 * 
+	 * #pw-internal
 	 *
-	 * @param array $attributes Optional array of attributes to build the strong from. If not specified, this Inputfield's attributes will be used.
+	 * @param array $attributes Associative array of attributes to build the string from, or omit to use this Inputfield's attributes.
 	 * @return string
 	 *
 	 */
@@ -552,7 +960,7 @@ abstract class Inputfield extends WireData implements Module {
 		foreach($attributes as $attr => $value) {
 
 			// skip over empty attributes
-			if(!strlen("$value") && (!$value = $this->get($attr))) continue; 
+			if(!is_array($value) && !strlen("$value") && (!$value = $this->attr($attr))) continue;
 
 			// if an attribute has multiple values (like class), then bundle them into a string separated by spaces
 			if(is_array($value)) $value = implode(' ', $value); 
@@ -564,12 +972,11 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Return the completed output of this Inputfield, ready for insertion in an XHTML form
+	 * Render the HTML input element(s) markup, ready for insertion in an HTML form. 
 	 *
-	 * The method as it appears here does not actually output an Inputfield. However, subclasses should render the output 
-	 * for an Inputfield and then call upon this parent render method to output any children (if applicable). 
-	 *
-	 * This includes the output of any child Inputfields (if applicable). Children are presented as list items in an unordered list. 
+	 * This is an abstract method that descending Inputfield module classes are required to implement.
+	 * 
+	 * #pw-group-output
 	 *
 	 * @return string
 	 *
@@ -577,15 +984,16 @@ abstract class Inputfield extends WireData implements Module {
 	abstract public function ___render();
 
 	/**
-	 * Render just the value (not input) in text/markup for presentation purposes
+	 * Render just the value (not input) in text/markup for presentation purposes.
 	 * 
-	 * This is within the context of an InputfieldForm, where the rendered markup can have
-	 * external CSS or JS dependencies (in Inputfield[Name].css or Inputfield[Name].js)
-	 *
- 	 * @return string of text or markup where applicable
+	 * #pw-group-output
+	 * 
+ 	 * @return string Text or markup where applicable
 	 *
 	 */
 	public function ___renderValue() {
+		// This is within the context of an InputfieldForm, where the rendered markup can have
+		// external CSS or JS dependencies (in Inputfield[Name].css or Inputfield[Name].js)
 		$value = $this->attr('value');
 		if(is_array($value)) {
 			if(!count($value)) return '';
@@ -599,24 +1007,36 @@ abstract class Inputfield extends WireData implements Module {
 	}
 	
 	/**
-	 * Called before render() or renderValue() method by InputfieldWrapper, before Inputfield-specific CSS/JS files added
+	 * Method called right before Inputfield markup is rendered, so that any dependencies can be loaded as well.
 	 * 
-	 * In this case used to populate any required CSS/JS files. The return value is true if assets were just added, 
-	 * and false if assets have already been added in a previous call. This distinction probably doesn't matter in 
-	 * most usages, but here just in case a descending class needs to know when/if to add additional assets (i.e. 
-	 * when this function returns true). 
+	 * Called before `Inputfield::render()` or `Inputfield::renderValue()` method by the parent `InputfieldWrapper`
+	 * instance. If you are calling either of those methods yourself for some reason, make sure that you call this 
+	 * `renderReady()` method first. 
 	 * 
-	 * @param Inputfield|InputfieldWrapper|null The parent Inputfield/wrapper that is rendering it or null if no parent.
-	 * @param bool $renderValueMode Whether renderValueMode will be used. 
-	 * @return bool 
+	 * The default behavior of this method is to populate Inputfield-specific CSS and JS file assets into 
+	 * `$config->styles` and `$config->scripts`. 
+	 * 
+	 * The return value is true if assets were just added, and false if assets have already been added in a previous 
+	 * call. This distinction probably doesn't matter in most usages, but here just in case a descending class needs 
+	 * to know when/if to add additional assets (i.e. when this method returns true). 
+	 * 
+	 * #pw-group-output
+	 * 
+	 * @param Inputfield|InputfieldWrapper|null The parent InputfieldWrapper that is rendering it, or null if no parent.
+	 * @param bool $renderValueMode Specify true only if this is for `Inputfield::renderValue()` rather than `Inputfield::render()`. 
+	 * @return bool True if assets were just added, false if already added. 
 	 *
 	 */
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		if($parent) {}
+		if($renderValueMode) {}
 		return $this->wire('modules')->loadModuleFileAssets($this) > 0;
 	}
 
 	/**
 	 * This hook was replaced by renderReady
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param $event
 	 * @deprecated
@@ -625,9 +1045,18 @@ abstract class Inputfield extends WireData implements Module {
 	public function hookRender($event) {  }
 	
 	/**
-	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
-	 *
-	 * @param WireInputData $input
+	 * Process input for this Inputfield directly from the POST (or GET) variables 
+	 * 
+	 * This method should pull the value from the given `$input` ragument, sanitize/validate it, and 
+	 * populate it to the `value` attribute of this Inputfield. 
+	 * 
+	 * Inputfield modules should implement this method if the built-in one here doesn't solve their need.
+	 * If this one does solve their need, then they should add any additional sanitization or validation
+	 * to the `Inputfield::setAttribute('value', $value)` method to occur when given the `value` attribute. 
+	 * 
+	 * #pw-group-input
+	 * 
+	 * @param WireInputData $input User input where value should be pulled from (typically `$input->post`)
 	 * @return $this
 	 * 
 	 */
@@ -645,6 +1074,7 @@ abstract class Inputfield extends WireData implements Module {
 		$changed = false; 
 
 		if($this instanceof InputfieldHasArrayValue && !is_array($value)) {
+			/** @var Inputfield $this */
 			$this->error("Expected an array value and did not receive it"); 
 			return $this;
 		}
@@ -669,7 +1099,8 @@ abstract class Inputfield extends WireData implements Module {
 
 			if($previousValue !== $values) { 
 				// If it has changed, then update for the changed value
-				$changed = true; 
+				$changed = true;
+				/** @var Inputfield $this */
 				$this->setAttribute('value', $values); 
 			}
 
@@ -686,17 +1117,22 @@ abstract class Inputfield extends WireData implements Module {
 			$this->trackChange('value', $previousValue, $value); 
 
 			// notify the parent of the change
-			if($parent = $this->getParent()) $parent->trackChange($this->name); 
+			$parent = $this->getParent();
+			if($parent) $parent->trackChange($this->name); 
 		}
 
 		return $this; 
 	}
 
 	/**
-	 * Return true if this field is empty (contains no/blank value), or false if it's not
+	 * Is this Inputfield empty? (Value attribute reflects an empty state)
+	 * 
+	 * Return true if this field is empty (no value or blank value), or false if it’s not empty.
 	 *
 	 * Used by the 'required' check to see if the field is populated, and descending Inputfields may 
 	 * override this according to their own definition of 'empty'.
+	 * 
+	 * #pw-group-attribute-methods
 	 *
 	 * @return bool
 	 *
@@ -709,29 +1145,57 @@ abstract class Inputfield extends WireData implements Module {
 		return false; 
 	}
 
-
 	/**
 	 * Get any custom configuration fields for this Inputfield
 	 *
-	 * Intended to be extended by each Inputfield as needed to add more config options. 
+	 * - Intended to be extended by each Inputfield as needed to add more config options.
 	 * 
-	 * NOTE: Inputfields with a name that starts with an underscore, i.e. "_myname" are assumed to be for runtime
-	 * use and are NOT stored in the database.
+	 * - The returned InputfieldWrapper ultimately ends up as the "Input" tab in the fields editor (admin). 
+	 * 
+	 * - Descending Inputfield classes should first call this method from the parent class to get the
+	 *   default configuration fields and the InputfieldWrapper they can add to.
+	 * 
+	 * - Returned Inputfield instances with a name attribute that starts with an underscore, i.e. "_myname" 
+	 *   are assumed to be for runtime use and are NOT stored in the database.
+	 * 
+	 * - If you prefer, you may instead implement the `Inputfield::getConfigArray()` method as an alternative.
+	 * 
+	 * ~~~~
+	 * // Example getConfigInputfields() implementation
+	 * public function ___getConfigInputfields() {
+	 *   // Get the defaults and $inputfields wrapper we can add to
+	 *   $inputfields = parent::___getConfigInputfields();
+	 *   // Add a new Inputfield to it
+	 *   $f = $this->wire('modules')->get('InputfieldText'); 
+	 *   $f->attr('name', 'first_name');
+	 *   $f->attr('value', $this->get('first_name')); 
+	 *   $f->label = 'Your First Name';
+	 *   $inputfields->add($f); 
+	 *   return $inputfields; 
+	 * }
+	 * ~~~~
+	 * 
+	 * #pw-group-module
 	 *
-	 * @return InputfieldWrapper
+	 * @return InputfieldWrapper Populated with Inputfield instances
+	 * @see Inputfield::getConfigArray()
 	 *
 	 */
 	public function ___getConfigInputfields() {
 
 		$conditionsText = $this->_('Conditions are expressed with a "field=value" selector containing fields and values to match. Multiple conditions should be separated by a comma.');
-		$conditionsNote = $this->_('Read more about [how to use this](https://processwire.com/api/selectors/inputfield-dependencies/).'); 
+		$conditionsNote = $this->_('Read more about [how to use this](http://processwire.com/api/selectors/inputfield-dependencies/).'); 
 
-		$fields = new InputfieldWrapper();
+		/** @var InputfieldWrapper $fields */
+		$fields = $this->wire(new InputfieldWrapper());
 
+		/** @var InputfieldFieldset $fieldset */
 		$fieldset = $this->modules->get('InputfieldFieldset');
 		$fieldset->label = $this->_('Visibility'); 
 		$fieldset->attr('name', 'visibility'); 
 		$fieldset->icon = 'eye';
+		
+		/** @var InputfieldSelect $field */
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->attr('name', 'collapsed'); 
 		$field->label = $this->_('Presentation'); 
@@ -754,6 +1218,7 @@ abstract class Inputfield extends WireData implements Module {
 		$field->attr('value', (int) $this->collapsed); 
 		$fieldset->append($field); 
 
+		/** @var InputfieldText $field */
 		$field = $this->modules->get("InputfieldText"); 
 		$field->label = $this->_('Show this field only if');
 		$field->description = $this->_('Enter the conditions under which the field will be shown.') . ' ' . $conditionsText; 
@@ -768,6 +1233,7 @@ abstract class Inputfield extends WireData implements Module {
 		$fieldset->collapsed = $this->collapsed == Inputfield::collapsedNo && !$this->getSetting('showIf') ? Inputfield::collapsedYes : Inputfield::collapsedNo;
 		$fields->append($fieldset); 
 
+		/** @var InputfieldInteger $field */
 		$field = $this->modules->get('InputfieldInteger'); 
 		$value = (int) $this->getSetting('columnWidth'); 
 		if($value < 10 || $value >= 100) $value = 100;
@@ -781,11 +1247,12 @@ abstract class Inputfield extends WireData implements Module {
 		$field->attr('value', $value . '%'); 
 		$field->description = $this->_("The percentage width of this field's container (10%-100%). If placed next to other fields with reduced widths, it will create floated columns."); // Description of colWidth option
 		$field->notes = $this->_("Note that not all fields will work at reduced widths, so you should test the result after changing this."); // Notes for colWidth option
-		if(!wire('input')->get('process_template')) if($value == 100) $field->collapsed = Inputfield::collapsedYes; 
+		if(!$this->wire('input')->get('process_template')) if($value == 100) $field->collapsed = Inputfield::collapsedYes; 
 		$fields->append($field); 
 
 		if(!$this instanceof InputfieldWrapper) {
-			
+		
+			/** @var InputfieldCheckbox $field */
 			$field = $this->modules->get('InputfieldCheckbox');
 			$field->label = $this->_('Required?');
 			$field->icon = 'asterisk';
@@ -795,7 +1262,8 @@ abstract class Inputfield extends WireData implements Module {
 			$field->description = $this->_("If checked, a value will be required for this field.");
 			$field->collapsed = $this->getSetting('required') ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 			$fields->add($field);
-			
+		
+			/** @var InputfieldText $field */
 			$field = $this->modules->get('InputfieldText'); 
 			$field->label = $this->_('Required only if');
 			$field->icon = 'asterisk';
@@ -806,42 +1274,65 @@ abstract class Inputfield extends WireData implements Module {
 			$field->collapsed = $field->attr('value') ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 			$field->showIf = "required>0"; 
 			$fields->add($field); 
-			
 		}
 	
 		return $fields; 
 	}
 
 	/**
-	 * Same as getConfigInputfields but allows for array definition instead
+	 * Alternative method for configuration that allows for array definition
 	 * 
-	 * If both getConfigInputfields and getConfigArray are implemented, both will be used. 
+	 * - This method is typically used instead of the `Inputfield::getConfigInputfields` method
+	 *   for module authors that prefer to use the array definition. 
 	 * 
-	 * See comments for InputfieldWrapper::importArray for example of array definition. 
+	 * - If both `getConfigInputfields()` and `getConfigArray()` are implemented, both will be used. 
+	 * 
+	 * - See comments for `InputfieldWrapper::importArray()` for example of array definition.
+	 * 
+	 * ~~~~~
+	 * // Example implementation
+	 * public function ___getConfigArray() {
+	 *   return [
+	 *     'test' => [
+	 *       'type' => 'text',
+	 *       'label' => 'This is a test',
+	 *       'value' => 'Test'
+	 *     ]
+	 *   ];
+	 * );
+	 * ~~~~~
+	 * 
+	 * #pw-group-module
 	 * 
 	 * @return array
 	 * 
 	 */
 	public function ___getConfigArray() {
-		return array(
-			/* Example:
-			'test' => array(
-				'type' => 'text',
-				'label' => 'This is a test',
-				'value' => 'Test', 
-			)
-			*/
-		);
+		return array();
 	}
 
 	/**
-	 * Return a list of Inputfield names from getConfigInputfields() that are allowed in fieldgroup/template context
+	 * Return a list of config property names allowed for fieldgroup/template context
+	 * 
+	 * These should be the names of Inputfields returned by `Inputfield::getConfigInputfields()` or 
+	 * `Inputfield::getConfigArray()` that are allowed in fieldgroup/template context.
+	 * 
+	 * The config property names specified here are allowed to be configured within the context 
+	 * of a given `Fieldgroup`, enabling the user to configure them independently per template
+	 * in the admin. 
+	 * 
+	 * This is the equivalent to the `Fieldtype::getConfigAllowContext()` method, but for the "Input" 
+	 * tab rather than the "Details" tab. 
+	 * 
+	 * #pw-group-module
 	 * 
 	 * @param Field $field
 	 * @return array of Inputfield names
+	 * @see Fieldtype::getConfigAllowContext()
 	 * 
 	 */
 	public function ___getConfigAllowContext($field) {
+		if($field) {}
 		return array(
 			'visibility', 
 			'collapsed', 
@@ -859,6 +1350,8 @@ abstract class Inputfield extends WireData implements Module {
 	 * For example, internal IDs should be converted to GUIDs where possible.
 	 * 
 	 * Most Inputfields do not need to implement this.
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param array $data
 	 * @return array
@@ -879,6 +1372,8 @@ abstract class Inputfield extends WireData implements Module {
 	 * Convert an array of exported data to a format that will be understood internally (opposite of exportConfigData)
 	 * 
 	 * Most Inputfields do not need to implement this.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param array $data
 	 * @return array Data as given and modified as needed. Also included is $data[errors], an associative array
@@ -891,6 +1386,8 @@ abstract class Inputfield extends WireData implements Module {
 
 	/**
 	 * Returns a unique key variable used to store errors in the session
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getErrorSessionKey() {
@@ -901,41 +1398,49 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Override Wire's error method and place errors in the context of their inputfield
+	 * Record an error for this Inputfield
 	 * 
-	 * @param string $text
-	 * @param int $flags
+	 * The error message will be placed in the context of this Inputfield. 
+	 * See the `Wire::error()` method for full details on arguments and options. 
+	 * 
+	 * #pw-group-states
+	 * 
+	 * @param string $text Text of error message
+	 * @param int $flags Optional flags
 	 * @return mixed
 	 *
 	 */
 	public function error($text, $flags = 0) {
+		// Override Wire's error method and place errors in the context of their inputfield
 		$key = $this->getErrorSessionKey();
-		$errors = $this->session->$key;			
+		$errors = $this->wire('session')->$key;			
 		if(!is_array($errors)) $errors = array();
 		if(!in_array($text, $errors)) {
 			$errors[] = $text; 
-			$this->session->set($key, $errors); 
+			$this->wire('session')->set($key, $errors); 
 		}
 		$text .= $this->name ? " ($this->name)" : "";
 		return parent::error($text, $flags); 
 	}
 
 	/**
-	 * Return array of strings containing errors that occurred during processInput
+	 * Return array of strings containing errors that occurred during input processing
 	 * 
-	 * Note that this is different from Wire::errors() in that it retrieves errors from the session
+	 * Note that this is different from `Wire::errors()` in that it retrieves errors from the session
 	 * rather than just the current run. 
+	 * 
+	 * #pw-group-states
 	 *
-	 * @param bool $clear Optionally clear the errors after getting them. Default=false.
+	 * @param bool $clear Optionally clear the errors after getting them (Default=false).
 	 * @return array
 	 *
 	 */
 	public function getErrors($clear = false) {
 		$key = $this->getErrorSessionKey();
-		$errors = $this->session->get($key);
+		$errors = $this->wire('session')->get($key);
 		if(!is_array($errors)) $errors = array();
 		if($clear) {
-			$this->session->remove($key); 
+			$this->wire('session')->remove($key); 
 			parent::errors("clear"); 
 		}
 		return $errors; 
@@ -943,9 +1448,12 @@ abstract class Inputfield extends WireData implements Module {
 	
 	/**
 	 * Does this Inputfield have the requested property or attribute?
+	 * 
+	 * #pw-group-attribute-methods
+	 * #pw-group-settings
 	 *
-	 * @param string $key
-	 * @return bool
+	 * @param string $key Requested property or attribute.
+	 * @return bool True if it has it, false if it doesn't 
 	 *
 	 */
 	public function has($key) {
@@ -955,9 +1463,41 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
+	 * Does this Inputfield have the given setting?
+	 * 
+	 * Return value does not indicate that it is non-empty, only that the setting is available. 
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param string $key Setting name
+	 * @return bool
+	 * 
+	 */
+	public function hasSetting($key) {
+		return isset($this->data[$key]);
+	}
+
+	/**
+	 * Does this Inputfield have the given attribute?
+	 * 
+	 * Return value does not indicate that it is non-empty, only that the setting is available. 
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param string $key Attribute name
+	 * @return bool
+	 * 
+	 */
+	public function hasAttribute($key) {
+		return isset($this->attributes[$key]);
+	}
+
+	/**
 	 * Track the change, but only if it was to the 'value' attribute.
 	 *
 	 * We don't track changes to any other properties of Inputfields. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $what Name of property that changed
 	 * @param mixed $old Previous value before change
@@ -971,22 +1511,30 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Entity encode a string (de-encoding if necessary and then re-encoding)
+	 * Entity encode a string with optional Markdown support.
 	 *
-	 * Also option for markdown support when 2nd argument is true. 
+	 * - Markdown support provided with second argument. 
+	 * - If string is already entity-encoded it will first be decoded. 
+	 * 
+	 * #pw-group-output
 	 *
-	 * @param string $str
-	 * @param bool|int $markdown Whether to allow any kind of formatting (according to $textFormat), or specify a textFormat constant.
-	 * @return string
+	 * @param string $str String to encode 
+	 * @param bool|int $markdown Optionally specify one of the following: 
+	 *   - `true` (boolean): To allow Markdown using default "textFormat" setting (which is basic Markdown by default). 
+	 *   - `false` (boolean): To disallow Markdown support (this is the default when $markdown argument omitted). 
+	 *   - `Inputfield::textFormatNone` (constant): Disallow Markdown support (default). 
+	 *   - `Inputfield::textFormatBasic` (constant): To support basic/inline Markdown.
+	 *   - `Inputfield::textFormatMarkdown` (constant): To support full Markdown and HTML.
+	 * @return string Entity encoded string or HTML string
 	 *
 	 */
 	public function entityEncode($str, $markdown = false) {
 		
 		// if already encoded, then un-encode it
 		if(strpos($str, '&') !== false && preg_match('/&(#\d+|[a-z]+);/', $str)) {
-			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8"); 
+			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8");
 		}
-
+		
 		if($markdown && $markdown !== self::textFormatNone) {
 			if(is_int($markdown)) {
 				$textFormat = $markdown;
@@ -996,28 +1544,32 @@ abstract class Inputfield extends WireData implements Module {
 			if(!$textFormat) $textFormat = self::textFormatBasic;
 			if($textFormat & self::textFormatBasic) {
 				// only basic markdown allowed (default behavior)
-				$str = $this->wire('sanitizer')->entitiesMarkdown($str);
+				$str = $this->wire('sanitizer')->entitiesMarkdown($str, array('allowBrackets' => true));
 			} else if($textFormat & self::textFormatMarkdown) {
 				// full markdown, plus HTML is also allowed
-				$str = $this->wire('sanitizer')->entitiesMarkdown($str, true);
+				$str = $this->wire('sanitizer')->entitiesMarkdown($str, array('fullMarkdown' => true));
 			} else {
 				// nothing allowed, text fully entity encoded regardless of $markdown request
-				$str = $this->wire('sanitizer')->entities($str); 
+				$str = $this->wire('sanitizer')->entities($str);
 			}
+			
 		} else {
-			$str = $this->wire('sanitizer')->entities($str); 
+			$str = $this->wire('sanitizer')->entities($str);
 		}
-
-		return $str; 
+		
+		return $str;
 	}
 
 	/**
-	 * Get or set editable state
+	 * Get or set editable state for this Inputfield
 	 * 
-	 * When set to false, this Inputfield's processInput() method won't be called by InputfieldWrapper.
+	 * When set to false, the `Inputfield::processInput()` method won't be called by parent InputfieldWrapper,
+	 * effectively skipping over input processing entirely for this Inputfield. 
 	 * 
-	 * @param bool|null $setEditable Specify bool to set the editable state
-	 * @return bool Returns the current editable state
+	 * #pw-group-states
+	 * 
+	 * @param bool|null $setEditable Specify true or false to set the editable state, or omit just to get the editable state.
+	 * @return bool Returns the current editable state.
 	 * 
 	 */
 	public function editable($setEditable = null) {
@@ -1042,7 +1594,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * If not, then this should return the default HTML for the Inputfield,
 	 * where supported. 
 	 * 
-	 * If this returns blank, then it means either custom HTML is not supported.
+	 * If this returns blank, then it means custom HTML is not supported.
 	 *
 	 * @param array $attr When populated with key=value, tags will be replaced. 
 	 * @return array
@@ -1054,6 +1606,8 @@ abstract class Inputfield extends WireData implements Module {
 		if(strpos($html, '{attr}')) {
 			
 			$html = str_replace('{attr}', $this->getAttributesString($attr), $html);	
+			
+			// @todo remove any other {tags} that might be present
 			
 		} else {
 			
@@ -1093,6 +1647,6 @@ abstract class Inputfield extends WireData implements Module {
 		}
 		return $html;	
 	}
-	 */
+	 */ 
 
 }

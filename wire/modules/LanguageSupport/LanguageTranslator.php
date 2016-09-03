@@ -1,13 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Language Translator 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ *
  *
  */
 class LanguageTranslator extends Wire {
@@ -74,8 +72,9 @@ class LanguageTranslator extends Wire {
 	 *
 	 */
 	public function __construct(Language $currentLanguage) {
+		$currentLanguage->wire($this);
 		$this->setCurrentLanguage($currentLanguage);
-		$this->rootPath = wire('config')->paths->root; 
+		$this->rootPath = $this->wire('config')->paths->root; 
 		$file = __FILE__; 
 		$pos = strpos($file, '/wire/modules/LanguageSupport/'); 
 		$this->rootPath2 = $pos ? substr($file, 0, $pos+1) : '';
@@ -123,14 +122,14 @@ class LanguageTranslator extends Wire {
 	 */
 	protected function objectToTextdomain($o) {
 
-		$class = get_class($o); 
+		$class = wireClassName($o, false); 
 
 		if(isset($this->classNamesToTextdomains[$class])) {
 			$textdomain = $this->classNamesToTextdomains[$class]; 			
 
 		} else {
 
-			$reflection = new ReflectionClass($o); 	
+			$reflection = new \ReflectionClass($o); 	
 			$filename = $reflection->getFileName(); 		
 			$textdomain = $this->filenameToTextdomain($filename); 
 			$this->classNamesToTextdomains[$class] = $textdomain;
@@ -138,7 +137,18 @@ class LanguageTranslator extends Wire {
 
 			// core classes at which translations are no longer applicable
 			// $stopClasses = array('Wire', 'WireData', 'WireArray', 'Fieldtype', 'FieldtypeMulti', 'Inputfield', 'Process');
-			$stopClasses = array('Wire', 'WireData', 'WireArray', 'Process');
+			$stopClasses = array(
+				'Wire', 
+				'WireData', 
+				'WireArray', 
+				'Process'
+			);
+			
+			if(__NAMESPACE__) {
+				foreach($stopClasses as $class) {
+					$stopClass[] = __NAMESPACE__ . "\\$class";
+				}
+			}
 
 			while($parentClass = $reflection->getParentClass()) { 
 				if(in_array($parentClass->getName(), $stopClasses)) break;
@@ -176,6 +186,10 @@ class LanguageTranslator extends Wire {
 			if($pos === false) $pos = strrpos($filename, '/site/'); 
 			if($pos !== false) $filename = substr($filename, $pos+1);
 		}
+
+		// convert FileCompiler paths
+		$pos = stripos($filename, '/cache/FileCompiler/');
+		if($pos) $filename = substr($filename, $pos+20);
 
 		$textdomain = str_replace(array('/', '\\'), '--', ltrim($filename, '/')); 
 		$textdomain = str_replace('.', '-', $textdomain); 
@@ -223,7 +237,7 @@ class LanguageTranslator extends Wire {
 	 *
 	 */
 	public function getTranslation($textdomain, $text, $context = '') {
-		if(self::isHooked('LanguageTranslator::getTranslation()')) {
+		if($this->wire('hooks')->isHooked('LanguageTranslator::getTranslation()')) {
 			// if method has hooks, we let them run
 			return $this->__call('getTranslation', array($textdomain, $text, $context));
 		} else { 
@@ -316,7 +330,9 @@ class LanguageTranslator extends Wire {
 	public function setTranslationFromHash($textdomain, $hash, $translation) {
 
 		// if the textdomain isn't yet setup, then set it up
-		if(!is_array($this->textdomains[$textdomain])) $this->textdomains[$textdomain] = $this->textdomainTemplate();
+		if(!isset($this->textdomains[$textdomain]) || !is_array($this->textdomains[$textdomain])) {
+			$this->textdomains[$textdomain] = $this->textdomainTemplate();
+		}
 
 		// populate the new translation
 		if(strlen($translation)) $this->textdomains[$textdomain]['translations'][$hash] = array('text' => $translation); 
@@ -374,6 +390,18 @@ class LanguageTranslator extends Wire {
 	}
 
 	/**
+	 * Does a json translation file exist for the given textdomain?
+	 * 
+	 * @param string $textdomain
+	 * @return bool
+	 * 
+	 */
+	public function textdomainFileExists($textdomain) {
+		$file = $this->getTextdomainTranslationFile($textdomain);
+		return is_file($file);
+	}
+
+	/**
 	 * Load translation group $textdomain into the current language translations
 	 *
 	 */
@@ -397,13 +425,21 @@ class LanguageTranslator extends Wire {
 	/**
 	 * Given a source file to translate, create a new textdomain
 	 *
-	 * @param string Filename that we will be translating, relative to site root.
+	 * @param string $filename Filename or textdomain that we will be translating, relative to site root.
+	 * @param bool $filenameIsTextdomain Specify true if $filename is a textdomain instead.
+	 * @param bool $save Whether to save the language
 	 * @return string|bool Returns textdomain string if successful, or false if not. 
 	 *
 	 */
-	public function addFileToTranslate($filename) {
+	public function addFileToTranslate($filename, $filenameIsTextdomain = false, $save = true) {
 
-		$textdomain = $this->filenameToTextdomain($filename); 
+		if($filenameIsTextdomain) {
+			$textdomain = $filename;
+			$filename = $this->textdomainToFilename($textdomain);
+			// $this->message($textdomain . ": " . $filename);
+		} else {
+			$textdomain = $this->filenameToTextdomain($filename);
+		}
 		$this->textdomains[$textdomain] = $this->textdomainTemplate(ltrim($filename, '/'), $textdomain); 
 		$file = $this->getTextdomainTranslationFile($textdomain); 
 		$result = file_put_contents($file, $this->encodeJSON($this->textdomains[$textdomain]), LOCK_EX); 
@@ -417,7 +453,7 @@ class LanguageTranslator extends Wire {
 				} 
 			}
 			$this->currentLanguage->$fieldName->add($file); 
-			$this->currentLanguage->save();
+			if($save) $this->currentLanguage->save();
 		}
 
 		return $result ? $textdomain : false;
@@ -432,7 +468,9 @@ class LanguageTranslator extends Wire {
 	 */
 	public function saveTextdomain($textdomain) {
 		if(empty($this->textdomains[$textdomain])) return false;
-		$json = $this->encodeJSON($this->textdomains[$textdomain]); 
+		$data = $this->textdomains[$textdomain];
+		//if(empty($data['file'])) $data['file'] = $this->textdomainToFilename($textdomain);
+		$json = $this->encodeJSON($data); 
 		$file = $this->getTextdomainTranslationFile($textdomain); 
 		$result = file_put_contents($file, $json, LOCK_EX); 
 		return $result; 

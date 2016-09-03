@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Debug 
@@ -7,20 +7,38 @@
  *
  * Currently only provides timer capability. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
 
 class Debug {
-	
+
+	/**
+	 * Current timers
+	 * 
+	 * @var array
+	 * 
+	 */
 	static protected $timers = array();
-	
+
+	/**
+	 * Timers that have been saved
+	 * 
+	 * @var array
+	 * 
+	 */
 	static protected $savedTimers = array();
-	
+
+	/**
+	 * Notes for saved timers
+	 * 
+	 * @var array
+	 * 
+	 */
 	static protected $savedTimerNotes = array();
 
 	/**
@@ -108,6 +126,9 @@ class Debug {
 
 	/**
 	 * Reset a timer so that it starts timing again from right now
+	 * 
+	 * @param string $key
+	 * @return string|int
 	 *
 	 */
 	static public function resetTimer($key) {
@@ -117,6 +138,8 @@ class Debug {
 
 	/**
 	 * Remove a timer completely
+	 * 
+	 * @param string $key
 	 *
 	 */
 	static public function removeTimer($key) {

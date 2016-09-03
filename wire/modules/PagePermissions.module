@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Permissions Module
@@ -9,10 +9,7 @@
  * if(!$page->viewable()) { echo "sorry you can't view this"; }
  * ...and so on...
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * Optional special permissions that are optional (by default, not installed):
@@ -101,9 +98,9 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		$this->addHook('Page::editable', $this, 'editable'); 
+		$this->addHook('Page::editable', $this, 'editable');
 		$this->addHook('Page::publishable', $this, 'publishable'); 
-		$this->addHook('Page::viewable', $this, 'viewable'); 
+		$this->addHook('Page::viewable', $this, 'viewable');
 		$this->addHook('Page::listable', $this, 'listable'); 
 		$this->addHook('Page::deleteable', $this, 'deleteable');
 		$this->addHook('Page::deletable', $this, 'deleteable');
@@ -149,12 +146,28 @@ class PagePermissions extends WireData implements Module {
 
 	/**
 	 * Is the given page editable?
-	 * 
-	 * @param Page $page;
+	 *
+	 * @param Page $page
 	 * @return bool
 	 *
 	 */
 	public function pageEditable(Page $page) {
+		if($this->wire('hooks')->isHooked('PagePermissions::pageEditable()')) {
+			return $this->__call('pageEditable', array($page));
+		} else {
+			return $this->___pageEditable($page);
+		}
+	}
+
+
+	/**
+	 * Hookable implmentation for: Is the given page editable?
+	 * 
+	 * @param Page $page
+	 * @return bool
+	 *
+	 */
+	protected function ___pageEditable(Page $page) {
 
 		$user = $this->wire('user');
 
@@ -168,20 +181,20 @@ class PagePermissions extends WireData implements Module {
 		if($page->status & Page::statusLocked) {
 			if(!$user->hasPermission("page-lock", $page)) return false; 
 		}
+
+		// special conditions apply if the page is a Language
+		if($page->template == 'language' && $user->hasPermission('page-edit') && $user->hasPermission('lang-edit')) {
+			return $this->hasLangPermission("page-edit-lang-$page->name", $user);
+		}
 			
 		// special conditions apply if the page is a User
 		if($page instanceof User || in_array($page->template->id, $this->wire('config')->userTemplateIDs)) {
 			return $this->userEditable($page);
 		}
-		
-		// special conditions apply if the page is a Language
-		if($page->template == 'language' && $user->hasPermission('page-edit') && $user->hasPermission('lang-edit')) {
-			return $this->hasLangPermission("page-edit-lang-$page->name", $user);
-		}
 
 		// if the user doesn't have page-edit permission, don't let them go further
 		if(!$user->hasPermission("page-edit", $page)) return false;
-	
+
 		// check if the system has a page-edit-created permission installed
 		if(is_null($this->hasPageEditCreated)) {
 			$this->hasPageEditCreated = $this->wire('permissions')->has('page-edit-created');
@@ -231,7 +244,8 @@ class PagePermissions extends WireData implements Module {
 		if($user->id === $page->id && $this->wire('page')->process == 'ProcessProfile' && $user->hasPermission('profile-edit')) return true;
 
 		// if the current process is something other than ProcessUser, they don't have permission
-		if($this->wire('process') != 'ProcessUser') {
+		$process = $this->wire('process');
+		if($process != 'ProcessUser' && (!$process instanceof ProcessPageList) && (!$process instanceof ProcessPageLister)) {
 			return false;
 		}
 	
@@ -275,7 +289,6 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Can the current user add/remove the given role from other users?
 	 * 
-	 * @param User $user
 	 * @param string|Role|int $role
 	 * @return bool
 	 * 
@@ -454,9 +467,12 @@ class PagePermissions extends WireData implements Module {
 	 * Hook for Page::viewable() or Page::viewable($user) method
 	 * 
 	 * Is the page viewable by the current user? (or specified user)
-	 * Optionally specify $user object to hook as first argument to check for a specific User. 
-	 * Optionally specify a field name (or Field object) to hook as first argument to check for specific field.
-	 * Optionally specify boolean false as first or second argument to hook to bypass template filename check.
+	 * 
+	 * - Optionally specify User object to hook as first argument to check for a specific User.
+	 * - Optionally specify a field name (or Field object) as first argument to check for specific field.
+	 * - Optionally specify Language object or language name as first argument to check if viewable 
+	 *   in that language (requires LanguageSupportPageNames module).
+	 * - Optionally specify boolean false as first or second argument to bypass template filename check.
 	 *
 	 * @param HookEvent $event
 	 *
@@ -564,11 +580,14 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function deleteable($event) {
+		/** @var Page $page */
 		$page = $event->object;
+		/** @var User $user */
 		$user = $this->wire('user'); 
 		if($page->isLocked()) {
 			$deleteable = false;
 		} else if($page instanceof User && $user->hasPermission('user-admin')) {
+			/** @var User $page */
 			$deleteable = true;
 			if($page->id == $user->id) $deleteable = false; // can't delete self
 			if($page->hasRole('superuser') && !$user->hasRole('superuser')) $deleteable = false; // non-superuser can't delete superuser
@@ -592,18 +611,32 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Is the page trashable by the current user?
 	 * 
+	 * Optionally specify boolean true for first argument to make this method behave as: "Is page deleteable OR trashable?"
+	 * 
 	 * @param HookEvent $event
 	 *
 	 */
 	public function trashable($event) {
 		/** @var Page $page */
 		$page = $event->object;
-		if($page->hasStatus(Page::statusTrash) || $page->template->noTrash) {
-			// if page is already in trash, or template doesn't allow placement in trash, we return false
-			$event->return = false;
-			return;
+		$event->return = false;
+		
+		if($event->arguments(0) !== true) {
+			if($page->hasStatus(Page::statusTrash) || $page->template->noTrash) {
+				// if page is already in trash, or template doesn't allow placement in trash, we return false
+				return;
+			}
 		}
-		$this->deleteable($event);
+		
+		if(!$page->isLocked()) {
+			$this->deleteable($event);
+			if(!$event->return && $this->wire('permissions')->has('page-edit-trash-created') && $page->editable()) {
+				// page can be trashable if user created it
+				$user = $this->wire('user');
+				$trashable = ($page->created_users_id === $user->id && $user->hasPermission('page-edit-trash-created', $page));
+				$event->return = $trashable;
+			}
+		}
 	}
 
 	/**
@@ -644,11 +677,13 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		// check if a $page is provided as the first argument for additional access checking
-		if($addable && isset($event->arguments[0]) && $event->arguments[0] instanceof Page) {
-			$addPage = $event->arguments[0]; 
-			if(count($page->template->childTemplates) && !in_array($addPage->template->id, $page->template->childTemplates)) {
-				$addable = false;
-			}	
+		if($addable) {
+			$addPage = $event->arguments(0);
+			if($addPage && $addPage instanceof Page && $addPage->template && $page->template) {
+				if(count($page->template->childTemplates) && !in_array($addPage->template->id, $page->template->childTemplates)) {
+					$addable = false;
+				}
+			}
 		}
 	
 		// check additional permissions if in multi-language environment
@@ -720,6 +755,7 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function moveable($event) {
+		/** @var Page $page */
 		$page = $event->object; 
 		$moveable = $page->editable('parent');
 		if($moveable && count($event->arguments) && $event->arguments[0] instanceof Page) {
@@ -738,6 +774,7 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function sortable($event) {
+		/** @var Page $page */
 		$page = $event->object; 
 		$sortable = false; 
 		if($page->id > 1 && $page->editable() && $this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
@@ -752,13 +789,15 @@ class PagePermissions extends WireData implements Module {
 	 * @param HookEvent $event
 	 *
 	 */
-	protected function publishable($event) {
+	public function publishable($event) {
 
+		/** @var User $user */
 		$user = $this->wire('user');
 		$event->return = true;
 
 		if($user->isSuperuser()) return;
 
+		/** @var Page $page */
 		$page = $event->object; 
 
 		// if page isn't editable, it certainly can't be publishable

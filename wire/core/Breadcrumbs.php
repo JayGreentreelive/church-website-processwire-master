@@ -1,31 +1,19 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Breadcrumbs
  *
  * Provides basic breadcrumb capability 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * This file is licensed under the MIT license.
+ * https://processwire.com/about/license/mit/
  * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
- * 
+ *
  *
  */
 
-/**
- * class Breadcrumb
- *
- * Holds a single breadcrumb item with URL and title
- *
- */
-class Breadcrumb extends WireData {
-	public function __construct($url = '', $title = '') {
-		$this->set('url', $url); 
-		$this->set('title', $title); 
-	}
-}
 
 /**
  * class Breadcrumbs
@@ -43,11 +31,13 @@ class Breadcrumbs extends WireArray {
 
 		if($item instanceof Page) {
 			$page = $item; 
-			$item = new Breadcrumb();
+			$item = $this->wire(new Breadcrumb());
 			$item->title = $page->get("title|name"); 
 			$item->url = $page->url;
-		} 
-
+		} else if($item instanceof Breadcrumb) {
+			$this->wire($item);
+		}
+		
 		return parent::add($item); 
 	}
 

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Class PageExport
@@ -6,10 +6,6 @@
  * PLEASE NOTE: this class is not yet functional and here as a work in progress, not currently used by the core. 
  * 
  * @todo make this module use a 'guid', adding it if not there already
- * 
- * ProcessWire 2.x
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
  */
 
@@ -69,7 +65,7 @@ class PageExport extends Wire {
 		
 		if(is_null($data)) {
 			$data = $page;
-			$page = new Page();
+			$page = $this->wire('pages')->newPage();
 		}
 
 		if(empty($data['core_version'])) throw new WireException("Invalid import data"); 

@@ -1,13 +1,9 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Helper class for PHP 5.6+ __debugInfo() methods in Wire classes
  * 
  * Class WireDebugInfo
- * 
- * ProcessWire 2.x
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
  */
 class WireDebugInfo extends Wire {
@@ -53,7 +49,7 @@ class WireDebugInfo extends Wire {
 			if($hook['options']['type'] == 'property') {
 				$key .= "property ";
 			} else if($hook['options']['after']) {
-				if(method_exists($class, $hook['method']) || method_exists($class, '___' . $hook['method'])) {
+				if(wireMethodExists($class, $hook['method']) || wireMethodExists($class, '___' . $hook['method'])) {
 					$key .= "after ";
 				}
 			}
@@ -65,14 +61,14 @@ class WireDebugInfo extends Wire {
 			$filename = '';
 			if(!empty($hook['toObject'])) {
 				$value .= $hook['toObject']->className() . "->";
-				$ref = new ReflectionClass($hook['toObject']);
+				$ref = new \ReflectionClass($hook['toObject']);
 				$filename = $ref->getFileName();
 			}
 			if(!empty($hook['toMethod'])) {
 				if(is_string($hook['toMethod'])) {
 					$value .= "$hook[toMethod]()";
 				} else if(is_callable($hook['toMethod'])) {
-					$ref = new ReflectionFunction($hook['toMethod']);
+					$ref = new \ReflectionFunction($hook['toMethod']);
 					$filename = $ref->getFileName();
 					$value = "anonymous function()";
 				}

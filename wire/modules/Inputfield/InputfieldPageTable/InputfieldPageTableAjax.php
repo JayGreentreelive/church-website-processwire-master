@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Ajax handler for FieldtypePageTable/InputfieldPageTable
@@ -7,10 +7,7 @@
  * Code by Ryan Cramer
  * Sponsored by Avoine
  *
- * ProcessWire 2.x
- * Copyright (C) 2014 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -43,7 +40,7 @@ class InputfieldPageTableAjax extends Wire {
 		if(!$fieldName) return;
 
 		$processPage = $this->wire('page'); 
-		if(!in_array('WirePageEditor', class_implements((string) $processPage->process))) return; // not ProcessPageEdit or compatible
+		if(!in_array('WirePageEditor', wireClassImplements((string) $processPage->process))) return; // not ProcessPageEdit or compatible
 
 		$field = $this->wire('fields')->get($this->wire('sanitizer')->fieldName($fieldName)); 
 		if(!$field || !$field->type instanceof FieldtypePageTable) return; // die('field does not exist or is not FieldtypePageTable'); 

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Module Process
@@ -11,11 +11,10 @@
  * This version also lifts several pieces of code from Soma's Modules Manager
  * specific to the parts involved with downloading modules from the directory.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @todo add support for module configuration inputfields with useLanguages option
  *
  */
 
@@ -238,12 +237,17 @@ class ProcessModule extends Process {
 
 		if($this->input->post->install) {
 			$this->session->CSRF->validate();
-			$name = $this->input->post->install;
+			$name = $this->wire('sanitizer')->name($this->input->post->install);
 			if($name && isset($this->modulesArray[$name]) && !$this->modulesArray[$name]) {
-				$module = $this->modules->get($name); 		
-				$this->modulesArray[$name] = 1; 
-				$this->session->message($this->_("Module Install") . " - " . $module->className); // Message that precedes the name of the module installed
-				$this->session->redirect("edit?name={$module->className}"); 
+				$module = $this->modules->install($name, array('force' => true)); 		
+				if($module) {
+					$this->modulesArray[$name] = 1;
+					$this->session->message($this->_("Module Install") . " - $name"); // Message that precedes the name of the module installed
+					$this->session->redirect("edit?name=$name");
+				} else {
+					$this->session->error($this->_('Error installing module') . " - $name");
+					$this->session->redirect("./");
+				}
 			}
 		}
 
@@ -279,6 +283,14 @@ class ProcessModule extends Process {
 			$this->session->CSRF->validate();
 			$this->executeDownloadURL($this->input->post->download_zip_url); 		
 		}
+		
+		if($this->input->post->clear_file_compiler) {
+			$this->session->CSRF->validate();
+			$compiler = new FileCompiler($this->wire('config')->paths->siteModules); 
+			$compiler->clearCache(true);
+			$this->session->message($this->_('Cleared file compiler cache'));
+			$this->session->redirect('./');
+		}	
 		
 		if($this->input->get->update) {
 			$name = $this->sanitizer->name($this->input->get->update); 
@@ -367,10 +379,16 @@ class ProcessModule extends Process {
 		
 		// site 
 		
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_site_modules'); 
 		$tab->attr('title', $this->labels['site']);
 		$tab->attr('class', 'WireTab');
+
+		$button = $this->modules->get('InputfieldSubmit');
+		$button->attr('name', 'clear_file_compiler');
+		$button->attr('value', $this->_('Clear compiled files'));
+		$button->addClass('ui-priority-secondary');
+		$button->icon = 'trash-o';
 		
 		$markup = $this->modules->get('InputfieldMarkup');
 		$markup->label = $this->_('/site/modules/ - Modules specific to your site');
@@ -378,12 +396,15 @@ class ProcessModule extends Process {
 		$markup->value .= $this->renderListTable($siteModulesArray, true);
 		$markup->value .= "<p class='detail'><i class='fa fa-fw fa-star'></i> " . sprintf($this->_('Browse the modules directory at %s'), "<a target='_blank' href='http://modules.processwire.com'>modules.processwire.com</a>") . "</p>"; 
 		$markup->value .= "<p class='detail'><i class='fa fa-fw fa-eraser'></i> " .  $this->_("To remove a module, click the module to edit, check the Uninstall box, then save. Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list above, you may need to click the Refresh button for ProcessWire to see the change."); // Instructions on how to remove a module
+		$markup->value .= "<p class='detail'><i class='fa fa-fw fa-info-circle'></i> " . $this->_('The button below clears compiled site modules and template files, forcing them to be re-compiled the next time they are accessed. Note that this may cause a temporary delay for one or more requests while files are re-compiled.') . "</p>";
+		$markup->value .= "<p class='detail'>" . $button->render() . "</p>";
 		$tab->add($markup);
+		
 		$form->add($tab); 
 		
 		// core
 		
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_core_modules'); 
 		$tab->attr('title', $this->labels['core']);
 		$tab->attr('class', 'WireTab');
@@ -397,7 +418,7 @@ class ProcessModule extends Process {
 		
 		// configurable
 		
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_configurable_modules');
 		$tab->attr('title', $this->labels['configure']);
 		$tab->attr('class', 'WireTab');
@@ -411,7 +432,7 @@ class ProcessModule extends Process {
 
 		// installable
 
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_install_modules');
 		$tabLabel = $this->labels['install']; 
 		$tab->attr('title', $tabLabel); 
@@ -427,7 +448,7 @@ class ProcessModule extends Process {
 
 		// new
 		
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_new_modules'); 
 		$tab->attr('title', $this->_('New'));
 		$tab->attr('class', 'WireTab');
@@ -612,7 +633,8 @@ class ProcessModule extends Process {
 			$summary .= empty($info['href']) ? '' : (" <a href='$info[href]'>" . $this->_('more') . "</a>");
 			if($summary) $summary = "<p class='module-summary'>$summary</p>";
 			$buttons = '';
-			$confirmJS = "return confirm('" . sprintf($this->_('Delete %s?'), $name) . "')";
+			$confirmDeleteJS = "return confirm('" . sprintf($this->_('Delete %s?'), $name) . "')";
+			$confirmInstallJS = "return confirm('" . sprintf($this->_('Installing may cause problems. Are you sure you want to install?'), $name) . "')";
 			$editUrl = "edit?name={$name}";
 
 			if(!$installed) {
@@ -644,25 +666,48 @@ class ProcessModule extends Process {
 				$title = "<span data-name='$name' class='$class'>$title</span>";
 
 				if(count($requires)) {
-					//$buttonState = 'ui-state-default ui-state-disabled';
-					//$buttonType = 'button';
+					$buttonState = 'ui-state-default ui-state-disabled';
+					$buttonType = 'button';
 				} else {
-					$isConfirm = count($modulesArray) == 1 && $this->wire('input')->get('name');
-					$buttonState = 'ui-state-default';
-					$buttonType = 'submit';
-					$buttonPriority = $isConfirm ? "ui-priority-primary" : "ui-priority-secondary";
-					$buttons .=
-						"<button type='$buttonType' name='install' data-install='$name' class='install_$name $buttonState ui-button $buttonPriority' value='$name'>" .
-						"<span class='ui-button-text'><i class='fa fa-sign-in'></i> " . $this->labels['install_btn'] . "</span></button>"; // Text for 'Install' button
-					// install confirm, needs a cancel button
-					if($isConfirm) $buttons .=
-						"<button type='$buttonType' name='cancel' class='cancel_$name ui-button ui-priority-secondary' value='$name'>" .
-						"<span class='ui-button-text'><i class='fa fa-times-circle'></i> " . $this->labels['cancel'] . "</span></button>"; // Text for 'Cancel' button
 				}
+				$isConfirm = count($modulesArray) == 1 && $this->wire('input')->get('name');
+				$buttonState = 'ui-state-default';
+				$buttonPriority = $isConfirm ? "ui-priority-primary" : "ui-priority-secondary";
+				$buttonType = 'submit';
+				$buttonWarning = '';
+				if(count($requires)) {
+					$buttonWarning = " onclick=\"$confirmInstallJS\"";
+					$icon = 'fa-warning';
+				} else {
+					$icon = 'fa-sign-in';
+				}
+				$buttons .=
+					"<button type='$buttonType' name='install'$buttonWarning data-install='$name' " . 
+						"class='install_$name $buttonState ui-button $buttonPriority' value='$name'>" .
+						"<span class='ui-button-text'>" . 
+							"<i class='fa $icon'></i> " . 
+							$this->labels['install_btn'] . 
+						"</span>" . 
+					"</button>"; 
+				
+				// install confirm, needs a cancel button
+				if($isConfirm) $buttons .=
+					"<button type='$buttonType' name='cancel' class='cancel_$name ui-button ui-priority-secondary' value='$name'>" .
+						"<span class='ui-button-text'>" . 
+							"<i class='fa fa-times-circle'></i> " . 
+							$this->labels['cancel'] . 
+						"</span>" . 
+					"</button>"; 
 
 				if($allowDelete && $this->wire('modules')->isDeleteable($name)) $buttons .= 
-					"<button type='submit' name='delete' data-delete='$name' class='delete_$name ui-state-default ui-priority-secondary ui-button' value='$name' onclick=\"$confirmJS\">" . 
-					"<span class='ui-button-text'><i class='fa fa-eraser'></i> " . $this->_x('Delete', 'button') . "</span></button>"; // Text for 'Delete' button
+					"<button type='submit' name='delete' data-delete='$name' " . 
+						"class='delete_$name ui-state-default ui-priority-secondary ui-button' " . 
+						"value='$name' onclick=\"$confirmDeleteJS\">" . 
+						"<span class='ui-button-text'>" . 
+							"<i class='fa fa-eraser'></i> " . 
+							$this->_x('Delete', 'button') . 
+						"</span>" . 
+					"</button>"; 
 
 				$editUrl = '#';
 
@@ -749,7 +794,7 @@ class ProcessModule extends Process {
 		$redirectURL = $update ? "./edit?name=$name" : "./";
 		$className = $name; 
 		$url = trim($this->wire('config')->moduleServiceURL, '/') . "/$className/?apikey=" . $this->wire('sanitizer')->name($this->wire('config')->moduleServiceKey);
-		$http = new WireHttp();
+		$http = $this->wire(new WireHttp());
 		$data = $http->get($url); 
 		if(empty($data)) {
 			$this->error($this->_('Error retrieving data from web service URL') . ' - ' . $http->getError());
@@ -761,7 +806,7 @@ class ProcessModule extends Process {
 			return $this->session->redirect($redirectURL);
 		}
 		if($data['status'] !== 'success') {
-			$this->error($this->_('Error reported by web service:') . ' ' . wire('sanitizer')->entities($data['error']));
+			$this->error($this->_('Error reported by web service:') . ' ' . $this->wire('sanitizer')->entities($data['error']));
 			return $this->session->redirect($redirectURL);	
 		}
 	
@@ -874,23 +919,23 @@ class ProcessModule extends Process {
 
 		$links = array();
 
-		$moduleName = wire('sanitizer')->entities1($data['name']);
+		$moduleName = $this->wire('sanitizer')->entities1($data['name']);
 		$links[] = "<a target='_blank' href='http://modules.processwire.com/modules/$moduleName/'>" . $this->_('More Information') . "</a>";
 
 		if($data['project_url']) {
-			$projectURL = wire('sanitizer')->entities($data['project_url']);
+			$projectURL = $this->wire('sanitizer')->entities($data['project_url']);
 			$links[] = "<a target='_blank' href='$projectURL'>" . $this->_('Project Page') . "</a>";
 		}
 
 		if($data['forum_url']) {
-			$forumURL = wire('sanitizer')->entities($data['forum_url']);
+			$forumURL = $this->wire('sanitizer')->entities($data['forum_url']);
 			$links[] = "<a target='_blank' href='$forumURL'>" . $this->_('Support Page') . "</a>";
 		}
 
 		if(count($links)) $table->row(array($this->_x('Links', 'install-table'), implode(' &nbsp;/&nbsp; ', $links)));
 
 		if($data['download_url']) {
-			$downloadURL = wire('sanitizer')->entities($data['download_url']);
+			$downloadURL = $this->wire('sanitizer')->entities($data['download_url']);
 			$table->row(array($this->_x('ZIP file', 'install-table'), $downloadURL));
 			$warnings[] = $this->_('Ensure that you trust the source of the ZIP file above before continuing!');
 		} else {
@@ -958,7 +1003,7 @@ class ProcessModule extends Process {
 		if(!$className) throw new WireException("No class name specified");
 
 		$destinationDir = $this->wire('config')->paths->siteModules . $className . '/';
-		$install = new ProcessModuleInstall();
+		$install = $this->wire(new ProcessModuleInstall());
 		
 		$completedDir = $install->downloadModule($url, $destinationDir);
 		if($completedDir) {
@@ -1037,14 +1082,14 @@ class ProcessModule extends Process {
 	
 	public function ___executeUpload($inputName = '') {
 		if(!$inputName) throw new WireException("This URL may be be accessed directly"); 
-		$install = new ProcessModuleInstall();
+		$install = $this->wire(new ProcessModuleInstall());
 		$install->uploadModule($inputName);
 		$this->session->redirect('./?reset=1'); 
 	}
 	
 	public function ___executeDownloadURL($url = '') {
 		if(!$url) throw new WireException("This URL may be be accessed directly");
-		$install = new ProcessModuleInstall();
+		$install = $this->wire(new ProcessModuleInstall());
 		$install->downloadModule($url);
 		$this->session->redirect('./?reset=1'); 
 	}
@@ -1085,13 +1130,15 @@ class ProcessModule extends Process {
 
 		$out = ''; 
 		$moduleId = $this->modules->getModuleID($moduleName); 
+		$languages = $this->wire('languages');
+		$collapseInfo = $this->wire('input')->get('collapse_info') || $this->wire('input')->get('modal') ? '&collapse_info=1': '';
 		if(!$moduleId) {
 			$this->error("Unknown module"); 
 			return $this->session->redirect('./'); 
 		}
 		if($this->wire('input')->get('refresh') == $moduleName) {
 			$this->wire('modules')->resetCache();
-			$this->session->redirect("./edit?name=$moduleName");
+			$this->session->redirect("./edit?name=$moduleName$collapseInfo");
 			return;
 		}
 		$sinfo = self::getModuleInfo();
@@ -1100,13 +1147,13 @@ class ProcessModule extends Process {
 			($this->wire('config')->debug && $this->wire('config')->advanced && ($flags & Modules::flagsAutoload)) ||
 			($flags & Modules::flagsDisabled);
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $sinfo['title'])); 
-		$this->setFuel('processHeadline', $moduleInfo['title']); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $sinfo['title'])); 
+		$this->wire('processHeadline', $moduleInfo['title']); 
 
 		/** @var InputfieldForm $form */
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('id', 'ModuleEditForm'); 
-		$form->attr('action', "edit?name=$moduleName"); 
+		$form->attr('action', "edit?name=$moduleName$collapseInfo"); 
 		$form->attr('method', 'post'); 
 
 		$fields = array();
@@ -1133,6 +1180,7 @@ class ProcessModule extends Process {
 			$field = $this->modules->get('InputfieldRadios'); 
 			$field->attr('name', '_use_duplicate');
 			$field->label = $this->_('Module file to use'); 
+			$field->icon = 'files-o';
 			$field->description = $this->_('There are multiple copies of this module. Select the module file you want to use.'); 
 			foreach($duplicates['files'] as $file) {
 				$field->addOption($file); 
@@ -1142,8 +1190,10 @@ class ProcessModule extends Process {
 		}
 		
 		$fields = $this->wire('modules')->getModuleConfigInputfields($moduleName); 
-		if($fields) foreach($fields as $field) {
-			$form->add($field);
+		if($fields) {
+			foreach($fields as $field) {
+				$form->add($field);
+			}
 		}
 
 		// uninstall checkbox
@@ -1179,16 +1229,34 @@ class ProcessModule extends Process {
 			$field = $this->modules->get("InputfieldSubmit"); 
 			$field->attr('name', 'submit_save_module'); 
 			$field->addClass('head_button_clone'); 
+			$field->addActionValue('exit', sprintf($this->_('%s + Exit'), $field->attr('value')), 'times');
 			$form->append($field);
 			
 		} else {
 			$this->message($this->_("This module doesn't have any fields to configure")); 
 		}
+	
+		$data = null;
+		if($languages && $fields) {
+			// multi-language support for Inputfield with useLanguages==true
+			// we populate the language values from module config data so module doesn't have to do this
+			$data = $this->modules->getModuleConfigData($moduleName);
+			foreach($fields->getAll() as $field) {
+				if(!$field->getSetting('useLanguages')) continue;
+				foreach($languages as $language) {
+					if($language->isDefault()) continue;
+					$name = $field->name . '__' . $language->id;
+					if(!isset($data[$name])) continue;
+					$field->set("value$language->id", $data[$name]);
+				}
+			}
+		}
 
 		// check for submitted form
-		if($this->input->post->submit_save_module) {
+		$submitSave = $this->input->post('submit_save_module');
+		if($submitSave) {
 
-			$data = $this->modules->getModuleConfigData($moduleName);
+			if(is_null($data)) $data = $this->modules->getModuleConfigData($moduleName);
 			$form->processInput($this->input->post); 
 			$updatedNames = array();
 			
@@ -1198,6 +1266,18 @@ class ProcessModule extends Process {
 					$value = $field->attr('value');
 					if(!isset($data[$name]) || $value != $data[$name]) $updatedNames[] = $name;
 					$data[$name] = $value;
+					// multi-language, if Inputfield specifies useLanguages==true
+					// convert value1234 inputfield values to module config data in name__1234 format
+					if($languages && $field->getSetting('useLanguages')) {
+						$_name = $name;
+						foreach($languages as $language) {
+							if($language->isDefault()) continue;
+							$name = $_name . "__" . $language->id;
+							$value = $field->get("value$language->id");
+							if(!isset($data[$name]) || $value != $data[$name]) $updatedNames[] = $name;
+							$data[$name] = $value;
+						}
+					}
 				}
 			}
 		
@@ -1209,7 +1289,7 @@ class ProcessModule extends Process {
 				$this->modules->saveModuleConfigData($moduleName, $data);
 				$updatedNames = count($updatedNames) ? ' (' . implode(', ', $updatedNames) . ')' : '';
 				$this->message($this->_("Saved Module") . " - $moduleName $updatedNames"); // Message shown before the name of a module that was just saved
-				$redirectURL = "./edit?name=$moduleName"; 
+				$redirectURL = $submitSave == 'exit' ? './' : "./edit?name=$moduleName$collapseInfo"; 
 				if($allowDisabledFlag) {
 					// module is autoload and has an option to diable
 					if($this->input->post('_flags_disabled')) {
@@ -1260,8 +1340,14 @@ class ProcessModule extends Process {
 			// someone please tell me if there is a better way to do this. I suspect there is, so
 			// will leave it out here in the open rather hide it in ProcessModule.css
 			'<span style="display:inline-block;width:1px;overflow:hidden;"> </span>/', $filename))); 
-		
-		$table->row(array($this->_x('ID', 'edit'), $moduleId)); 
+	
+		if($this->wire('config')->debug) {
+			if($moduleInfo['namespace'] === '') $namespace = "\\" . __NAMESPACE__ . ' ' . $this->_('(default namespace)'); 
+				else if($moduleInfo['namespace'] === "\\") $namespace = $this->_('None (root namespace)');
+				else $namespace = $moduleInfo['namespace'];
+			$table->row(array($this->_x('Namespace', 'edit'), $namespace)); 
+			$table->row(array($this->_x('ID', 'edit'), $moduleId)); 
+		}
 		$table->row(array($this->_x('Version', 'edit'), $version)); 
 		if(!empty($moduleInfo['created'])) $table->row(array($this->labels['installed_date'], wireRelativeTimeStr($moduleInfo['created'])));
 		if(!empty($moduleInfo['author'])) $table->row(array($this->_x('Author', 'edit'), $moduleInfo['author'])); 
@@ -1285,6 +1371,7 @@ class ProcessModule extends Process {
 		$field->attr('value', $table->render()); 
 		$field->label = $this->_x("Module Information", 'edit');
 		$field->icon = 'info-circle';
+		if($collapseInfo) $field->collapsed = Inputfield::collapsedYes;
 		$form->prepend($field); 
 
 		$out .= $form->render();
@@ -1294,14 +1381,20 @@ class ProcessModule extends Process {
 	
 	protected function renderModuleHooks($moduleName) {
 		$out = '';
-		$hooks = array_merge($this->wire()->getHooks('*'), Wire::$allLocalHooks);
+		$hooks = array_merge($this->wire()->getHooks('*'), $this->wire('hooks')->getAllLocalHooks());
 		foreach($hooks as $hook) {
 			$toObject = !empty($hook['toObject']) ? $hook['toObject'] : '';
-			if(empty($toObject) || get_class($toObject) != $moduleName) continue;
+			if(empty($toObject) || wireClassName($toObject, false) != $moduleName) continue;
 			$suffix = $hook['options']['type'] == 'method' ? '()' : '';
-			$out .= "<code>" . ($hook['options']['fromClass'] ? $hook['options']['fromClass'] . '::' : '') . "$hook[method]$suffix</code>, ";
+			$when = '';
+			if($hook['options']['before']) $when .= $this->_('before');
+			if($hook['options']['after']) $when .= ($when ? '+' : '') . $this->_('after');
+			if($when) $when .= ".";
+			if($out) $when = ", $when";
+			$when = "<span class='detail'>$when</span>";
+			$out .= "$when" . ($hook['options']['fromClass'] ? $hook['options']['fromClass'] . '::' : '') . "$hook[method]$suffix";
 		}
-		return trim($out, ", "); 
+		return $out;
 	}
 	
 	public function ___executeInstallConfirm() {

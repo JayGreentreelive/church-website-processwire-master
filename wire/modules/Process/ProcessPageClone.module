@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Clone Process
@@ -6,10 +6,7 @@
  * For more details about how Process modules work, please see: 
  * /wire/core/Process.php 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * Optional GET variables: 
@@ -217,7 +214,7 @@ class ProcessPageClone extends Process {
 			$title = $this->wire('fields')->get('title');
 			$titleUseLanguages = $title 
 				&& $this->page->template->fieldgroup->hasField($title) 
-				&& $title->getInputfield($this->page)->useLanguages;
+				&& $title->getInputfield($this->page)->getSetting('useLanguages');
 			$nameUseLanguages = $this->wire('modules')->isInstalled('LanguageSupportPageNames'); 
 			if($titleUseLanguages) $titleField->useLanguages = true;
 			if($nameUseLanguages) $nameField->useLanguages = true; 
@@ -310,12 +307,13 @@ class ProcessPageClone extends Process {
 		} else {
 			$page->name = $nameField->value;
 		}
-	
+
 		set_time_limit(3600);
+		
 		$clone = $this->pages->clone($page, $page->parent, $cloneTree);
 		if(!$clone->id) throw new WireException(sprintf($this->_("Unable to clone page %s"), $page->path));
 
-		if($titleField->useLanguages && is_object($clone->title)) {
+		if($titleField->getSetting('useLanguages') && is_object($clone->title)) {
 			foreach($this->wire('languages') as $language) {
 				$valueAttr = $language->isDefault() ? "value" : "value$language->id";
 				$value = $titleField->get($valueAttr);
@@ -376,7 +374,7 @@ class ProcessPageClone extends Process {
 		
 		try {
 			$clone = $this->wire('pages')->clone($page, $page->parent, $cloneTree, $cloneOptions);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$error = $e->getMessage();	
 		}
 		

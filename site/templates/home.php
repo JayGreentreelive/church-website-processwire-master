@@ -153,7 +153,7 @@ include("./includes/head.inc");
 
     $lp_times = 'Sundays: 9:15am &amp; 11:15am';
     $cp_times = 'Sundays: 9am &amp; 11am';
-    $ck_times = 'Sundays: 9:15am';
+    $ck_times = 'Thursdays 6:45 PM <br />Sundays: 10:45am';
     $home_service_times = 'Service Times';
 
     ?>
@@ -171,14 +171,14 @@ include("./includes/head.inc");
             <div class='pd-xs'>
               <a href='#'><img src='/site/assets/files/1/map1.jpg' class='img-responsive img-full-width'/></a>
 
-              <h3>Fairhaven Campus</h3>
+              <h3>Vincennes Campus</h3>
              <p class='campus-times'><?php echo $ck_times;?></p>
 
                <ul class="fa-ul">
-                <li><a href='http://thecha.pl/1CZyBlH' target="_blank"><i class="fa-li icon-location-pin-1"></i>
-                                 345 Belt Circle<br/>
-                                 Fairhaven, NY 14225</a></li>
-                <li><i class="fa-li icon-call-2"></i>716.555.1234</li>
+                <li><a href='bit.ly/tcvmap' target="_blank"><i class="fa-li icon-location-pin-1"></i>
+                                 218 Main St<br/>
+                                 Vincennes, IN 47591</a></li>
+                <li><i class="fa-li icon-call-2"></i>812.882.2737</li>
               </ul>
                <div class=' mg-t-sm2'><a href='#' class='btn btn-default btn-left '><i class='icon-right-4 icon-fw'></i> Campus Info</a></div>
             </div>
@@ -189,12 +189,12 @@ include("./includes/head.inc");
              <div class='pd-xs'>
             <a href='#'><img src='/site/assets/files/1/map2.jpg'   class='img-responsive img-full-width'/></a>
 
-            <h3>Gilroy Campus</h3>
+            <h3>Bicknell Campus</h3>
            <p class='campus-times'><?php echo $cp_times;?></p>
 
            <ul class="fa-ul">
 
-                <li><a href='http://google.com' target="_blank"><i class="fa-li icon-location-pin-1"></i>123 Fake Street<br/>
+                <li><a href='bit.ly/tcbmap' target="_blank"><i class="fa-li icon-location-pin-1"></i>123 Fake Street<br/>
             Gilroy, NY, 14068</a></li>
               <li><i class="fa-li icon-call-2"></i>716.555.2636</li>
             </ul>
@@ -206,13 +206,12 @@ include("./includes/head.inc");
            <div class='pd-xs'>
             <a href='#'><img src='/site/assets/files/1/map3.jpg'  class='img-responsive img-full-width'/></a>
 
-             <h3>Meadowville Campus</h3>
+             <h3>Church Online</h3>
            <p class='campus-times'><?php echo $lp_times;?></p>
 
              <ul class="fa-ul">
-               <li><a href="http://google.com" target="_blank"><i class="fa-li icon-location-pin-1"></i>124 Brody Drive<br/>
-            Meadowville, NY 14094</a></li>
-              <li><i class="fa-li icon-call-2"></i>716.555.4050</li>
+               <li><a href="http://bit.ly/tcv-live" target="_blank"><i class="fa-li icon-location-pin-1"></i>live.thursdaychurch.org</a></li>
+              <li><i class="fa-li icon-call-2"></i></li>
             </ul>
              <div class=' mg-t-sm2'><a href='#' class='btn btn-default btn-left'><i class='icon-right-4 icon-fw'></i> Campus Info</a></div>
             </div>

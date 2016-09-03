@@ -14,8 +14,8 @@
  * 
  */
 function ckeLoadPlugins() {
-	for(var name in config.InputfieldCKEditor.plugins) {
-		var file = config.InputfieldCKEditor.plugins[name];
+	for(var name in ProcessWire.config.InputfieldCKEditor.plugins) {
+		var file = ProcessWire.config.InputfieldCKEditor.plugins[name];
 		CKEDITOR.plugins.addExternal(name, file, '');
 	}
 }
@@ -29,14 +29,26 @@ ckeLoadPlugins();
  */
 function ckeBlurEvent(event) {
 	var editor = event.editor;
+	var $textarea = $(editor.element.$);
 	if(editor.checkDirty()) {
 		// value changed
-		var $textarea = $(editor.element.$);
 		if($textarea.length) {
 			if($textarea.is("textarea")) $textarea.change();
 			$textarea.closest(".Inputfield").addClass('InputfieldStateChanged');
 		}
 	}
+}
+
+/**
+ * Event called when an editor is focused
+ *
+ * @param event
+ *
+ */
+function ckeFocusEvent(event) {
+	var editor = event.editor;
+	var $textarea = $(editor.element.$);
+	$textarea.trigger('pw-focus');
 }
 
 /**
@@ -62,10 +74,13 @@ function ckeResizeEvent(event) {
 function ckeInitEvents(editor) {
 	
 	editor.on('blur', ckeBlurEvent);
+	editor.on('focus', ckeFocusEvent);
 	editor.on('change', ckeBlurEvent);
 	editor.on('resize', ckeResizeEvent);
+
+	var $textarea = $(editor.element.$);
+	var $inputfield = $textarea.closest('.Inputfield.InputfieldColumnWidth');
 	
-	var $inputfield = $(editor.element.$).closest('.Inputfield.InputfieldColumnWidth');
 	if($inputfield.length) setTimeout(function() {
 		$inputfield.trigger('heightChanged');
 	}, 1000);
@@ -137,7 +152,7 @@ function ckeInlineMouseoverEvent(event) {
 	$t.effect('highlight', {}, 500);
 	$t.attr('contenteditable', 'true');
 	var configName = $t.attr('data-configName');
-	var editor = CKEDITOR.inline($(this).attr('id'), config[configName]);
+	var editor = CKEDITOR.inline($(this).attr('id'), ProcessWire.config[configName]);
 	ckeInitEvents(editor);
 	$t.addClass("InputfieldCKEditorLoaded"); 
 }
@@ -171,8 +186,8 @@ function ckeInitNormal(editorID) {
 	var $editor = $('#' + editorID);
 	var $parent = $editor.parent();
 	
-	if(typeof config.InputfieldCKEditor.editors[editorID] != "undefined") {
-		var configName = config.InputfieldCKEditor.editors[editorID];
+	if(typeof ProcessWire.config.InputfieldCKEditor.editors[editorID] != "undefined") {
+		var configName = ProcessWire.config.InputfieldCKEditor.editors[editorID];
 	} else {
 		var configName = $editor.attr('data-configName');
 	}
@@ -185,7 +200,7 @@ function ckeInitNormal(editorID) {
 		$parent.closest('.ui-tabs, .langTabs').on('tabsactivate', ckeInitTab);
 	} else {
 		// visible CKEditor
-		var editor = CKEDITOR.replace(editorID, config[configName]);
+		var editor = CKEDITOR.replace(editorID, ProcessWire.config[configName]);
 		ckeInitEvents(editor);
 		$editor.addClass('InputfieldCKEditorLoaded');
 	}
@@ -201,14 +216,14 @@ $(document).ready(function() {
 	 * Override ckeditor timestamp for cache busting
 	 * 
 	 */
-	CKEDITOR.timestamp = config.InputfieldCKEditor.timestamp;
+	CKEDITOR.timestamp = ProcessWire.config.InputfieldCKEditor.timestamp;
 
 	/**
 	 * Regular editors
 	 * 
 	 */
 	
-	for(var editorID in config.InputfieldCKEditor.editors) {
+	for(var editorID in ProcessWire.config.InputfieldCKEditor.editors) {
 		ckeInitNormal(editorID);
 	}
 	

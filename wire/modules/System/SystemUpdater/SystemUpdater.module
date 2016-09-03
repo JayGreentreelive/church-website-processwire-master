@@ -1,14 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Class SystemUpdater
  * 
  * ProcessWire System Helper Module
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -27,7 +24,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 			 * This version number is important, as this updater keeps the systemVersion up with this version
 			 *
 			 */
-			'version' => 14, 
+			'version' => 15, 
 			);
 	}
 
@@ -125,13 +122,28 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 * 
 	 */
 	protected function ___coreVersionChange($fromVersion, $toVersion) {
+		
 		$this->message(sprintf($this->_('Detected core version change %1$s => %2$s'), $fromVersion, $toVersion));
+		
+		if( (strpos($fromVersion, '2') === 0 && strpos($toVersion, '3') === 0) ||
+			(strpos($fromVersion, '3') === 0 && strpos($toVersion, '2') === 0)) {
+			// clear FileCompiler cache
+			$config = $this->wire('config');
+			if($config->templateCompile || $config->moduleCompile) {
+				$compiler = new FileCompiler($this->wire('config')->paths->templates);
+				$compiler->clearCache(true);
+				$this->message($this->_('Cleared file compiler cache')); 
+			}
+		}
+		
 		if(!$this->numUpdatesApplied) {
 			// reset modules cache, only if it hasn't been reset already by a system update
 			$this->modules->resetCache();
 		}
+		
 		$this->configData['coreVersion'] = $toVersion;
 		$this->wire('modules')->saveModuleConfigData($this, $this->configData);
+		
 	}
 
 	/**
@@ -161,15 +173,16 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 		
 		$className = 'SystemUpdate' . $version;
 		$filename = $this->config->paths->SystemUpdater . $className . '.php';
+		$className = wireClassName($className, true);
 		$errorMessage = sprintf('Failed to apply update %d', $version); 
 		
 		if(is_file($filename)) {
 			try {
 				include($filename); 
-				$update = new $className($this); 
+				$update = $this->wire(new $className($this)); 
 				$update->message('Initializing update'); 
 				$success = $update->execute();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$msg = $errorMessage . " - " . $e->getMessage(); 
 				if($update) $update->error($msg); 
 					else $this->error($msg); 
@@ -207,29 +220,29 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 * Required for ConfigurableModule interface
 	 *
 	 */
-	public static function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 		
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 
-		$logfile = wire('config')->paths->logs . 'system-updater.txt';
+		$logfile = $this->wire('config')->paths->logs . 'system-updater.txt';
 		if(is_file($logfile)) {
-			$f = wire('modules')->get('InputfieldMarkup'); 	
+			$f = $this->wire('modules')->get('InputfieldMarkup'); 	
 			$f->attr('name', '_log'); 
-			$f->label = __('System Update Log'); 
-			$f->value = '<pre>' . wire('sanitizer')->entities(file_get_contents($logfile)) . '</pre>';
+			$f->label = $this->_('System Update Log'); 
+			$f->value = '<pre>' . $this->wire('sanitizer')->entities(file_get_contents($logfile)) . '</pre>';
 			$inputfields->add($f); 
 		}
 		
-		$f = wire('modules')->get('InputfieldInteger'); 
+		$f = $this->wire('modules')->get('InputfieldInteger'); 
 		$f->attr('name', 'systemVersion'); 
-		$f->label = __('System Version'); 
-		$f->description = __('This lets you re-apply a system version update by reducing the version number.');
+		$f->label = $this->_('System Version'); 
+		$f->description = $this->_('This lets you re-apply a system version update by reducing the version number.');
 		$f->attr('value', $data['systemVersion']); 
 		$inputfields->add($f);
 	
-		$f = wire('modules')->get('InputfieldHidden');
+		$f = $this->wire('modules')->get('InputfieldHidden');
 		$f->attr('name', 'coreVersion');
-		$f->attr('value', wire('config')->version);
+		$f->attr('value', $this->wire('config')->version);
 		$inputfields->add($f);
 
 		return $inputfields;

@@ -1,12 +1,9 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Temporary Directory Manager
  *
- * ProcessWire 2.x
- * Copyright (C) 2014 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -29,7 +26,7 @@ class WireTempDir extends Wire {
 	 */
 	public function __construct($name, $basePath = '') {
 		
-		if(is_object($name)) $name = get_class($name); 
+		if(is_object($name)) $name = wireClassName($name, false); 
 		if(empty($name) || !is_string($name)) throw new WireException("A valid name (string) must be provided"); 
 		
 		if($basePath) {
@@ -41,12 +38,12 @@ class WireTempDir extends Wire {
 		} else {
 			// we provide base path (root)
 			$basePath = $this->wire('config')->paths->cache;
-			if(!is_dir($basePath)) wireMkdir($basePath);
+			if(!is_dir($basePath)) $this->wire('files')->mkdir($basePath);
 		}
 		
-		$basePath .= get_class($this) . '/';
+		$basePath .= wireClassName($this, false) . '/';
 		$this->classRoot = $basePath; 
-		if(!is_dir($basePath)) wireMkdir($basePath); 
+		if(!is_dir($basePath)) $this->wire('files')->mkdir($basePath); 
 		
 		$this->tempDirRoot = $basePath . ".$name/";
 	}
@@ -101,15 +98,15 @@ class WireTempDir extends Wire {
 				// check if we can remove existing temp dir
 				$time = filemtime($tempDir);
 				if($time < time() - $this->tempDirMaxAge) { // dir is old and can be removed
-					if(wireRmdir($tempDir, true)) $exists = false;
+					if($this->wire('files')->rmdir($tempDir, true)) $exists = false;
 				}
 			}
 		} while($exists);
 
 		// create temp dir
-		if(!wireMkdir($tempDir, true)) {
+		if(!$this->wire('files')->mkdir($tempDir, true)) {
 			clearstatcache();
-			if(!is_dir($tempDir) && !wireMkdir($tempDir, true)) {
+			if(!is_dir($tempDir) && !$this->wire('files')->mkdir($tempDir, true)) {
 				throw new WireException($this->_('Unable to create temp dir') . " - $tempDir");
 			}
 		}
@@ -150,7 +147,7 @@ class WireTempDir extends Wire {
 			// remove temporary directories created by other instances (like if one had failed at some point)
 			$numSubdirs = 0;
 			$pathname = '';
-			foreach(new DirectoryIterator($this->tempDirRoot) as $dir) {
+			foreach(new \DirectoryIterator($this->tempDirRoot) as $dir) {
 				if(!$dir->isDir() || $dir->isDot()) continue;
 				if($dir->getMTime() < (time() - $this->tempDirMaxAge)) {
 					// old dir found

@@ -1,14 +1,14 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire ConfigurableModule Interface
  *
  * Provides the base interfaces required by modules.
+ * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * 
@@ -35,6 +35,7 @@
  *
  * You may optionally specify a handler method for configuration data: setConfigData().
  * If present, it will be used. See commented function reference in the interface below.
+ * 
  *
  */
 interface ConfigurableModule {
@@ -65,7 +66,7 @@ interface ConfigurableModule {
 	 * 1. You are working with the module in the same context that it is when running,
 	 *    thus you can pull config values and API vars directly from $this->something.
 	 * 2. It can be extended in descending classes.
-	 * 3. The $data argument can be ommitted, as you don't need it since all config
+	 * 3. The $data argument can be omitted, as you don't need it since all config
 	 *    properties can be accessed directly from $this->[any property]. 
 	 * 4. You can specify an optional $inputfields argument in your function definition
 	 *    and if present, ProcessWire will prepare an InputfieldWrapper for you, saving
@@ -82,20 +83,19 @@ interface ConfigurableModule {
 	 * 	Note that this array will be empty if the module has not been configured before.
 	 * @return InputfieldWrapper
 	 *
-	 
-	// static version
-	public static function getModuleConfigInputfields(array $data); 
-	  
-	// non-static version
-	public function getModuleConfigInputfields(); 
-	 
-	// non-static version with optional $data array, if you want it for some reason
-	public function getModuleConfigInputfields(array $data); 
-	 
-	// non-static version with optional InputfieldWrapper as a convenience
-	// note that the "return" statement may be omitted when using the $inputfields param.
-	public function getModuleConfigInputfields($inputfields); 
-	 
+	 *  
+	 * // static version
+	 * public static function getModuleConfigInputfields(array $data); 
+	 * 
+	 * // non-static version
+	 * public function getModuleConfigInputfields(); 
+	 *  
+	 * // non-static version with optional $data array, if you want it for some reason
+	 * public function getModuleConfigInputfields(array $data); 
+	 *  
+	 * // non-static version with optional InputfieldWrapper as a convenience
+	 * // note that the "return" statement may be omitted when using the $inputfields param.
+	 * public function getModuleConfigInputfields($inputfields); 
 	 * 
 	 */
 
@@ -118,8 +118,8 @@ interface ConfigurableModule {
 	 *
 	 * @return array
 	 *
-	public static function getModuleConfigArray(); // static version
-	public function getModuleConfigArray(); // non-static version
+	 * public static function getModuleConfigArray(); // static version
+	 * public function getModuleConfigArray(); // non-static version
 	 */
 
 	/**
@@ -147,7 +147,7 @@ interface ConfigurableModule {
 	 *
 	 * @param array $data Array of data in $key => $value format.
 	 *
-	public function setConfigData(array $data);
+	 * public function setConfigData(array $data);
 	 *
 	 */
 

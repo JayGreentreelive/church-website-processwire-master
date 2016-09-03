@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Admin Theme Module
@@ -6,14 +6,17 @@
  * An abstract module intended as a base for admin themes. 
  *
  * See the Module interface (Module.php) for details about each method. 
+ *
+ * This file is licensed under the MIT license. 
+ * https://processwire.com/about/license/mit/
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property int|string $version Current admin theme version
+ * 
+ * @method void install()
+ * @method void uninstall()
  *
  */
 
@@ -22,25 +25,25 @@ abstract class AdminTheme extends WireData implements Module {
 	/**
 	 * Per the Module interface, return an array of information about the Module
 	 *
- 	 */
+	 */
 	public static function getModuleInfo() {
 		return array(
-			'title' => '',		// printable name/title of module
-			'version' => 1, 	// version number of module
-			'summary' => '', 	// 1 sentence summary of module
-			'href' => '', 		// URL to more information (optional)
+			'title'    => '',        // printable name/title of module
+			'version'  => 1,    // version number of module
+			'summary'  => '',    // 1 sentence summary of module
+			'href'     => '',        // URL to more information (optional)
 
 			// all admin themes should have this as their autoload selector:
-			'autoload' => 'template=admin', 
+			'autoload' => 'template=admin',
 			'singular' => true
-			); 
+		);
 	}
 
 	/**
 	 * Current admin theme version (cached from module info)
-	 * 
+	 *
 	 * @var int
-	 * 
+	 *
 	 */
 	protected $version = 0;
 
@@ -52,11 +55,27 @@ abstract class AdminTheme extends WireData implements Module {
 
 	/**
 	 * Additional classes for body tag
+	 *
+	 * @var array
+	 *
+	 */
+	protected $bodyClasses = array();
+
+	/**
+	 * URLs to place in link prerender tags
 	 * 
 	 * @var array
 	 * 
 	 */
-	protected $bodyClasses = array();
+	protected $preRenderURLs = array();
+
+	/**
+	 * Construct
+	 * 
+	 */
+	public function __construct() {
+		// placeholder
+	}
 
 	/**
 	 * Initialize the admin theme systme and determine which admin theme should be used
@@ -150,13 +169,20 @@ abstract class AdminTheme extends WireData implements Module {
 			'footer' => '',
 			'sidebar' => '', // sidebar not used in all admin themes
 		);
-		if($this->wire('modules')->isInstalled('InputfieldCKEditor') && $this->wire('user')->isLoggedin()) {
+		$isLoggedin = $this->wire('user')->isLoggedin();
+		if($isLoggedin && $this->wire('modules')->isInstalled('InputfieldCKEditor') 
+			&& $this->wire('process') instanceof WirePageEditor) {
 			// necessary for when CKEditor is loaded via ajax
 			$parts['head'] .= "<script>" . 
 				"window.CKEDITOR_BASEPATH='" . $this->wire('config')->urls->InputfieldCKEditor . 
 				'ckeditor-' . InputfieldCKEditor::CKEDITOR_VERSION . "/';</script>";
 		}
-		if($this->wire('config')->advanced) $parts['footer'] = "<p class='AdvancedMode'><i class='fa fa-flask'></i> " . $this->_('Advanced Mode') . "</p>"; 
+		if($isLoggedin && $this->wire('config')->advanced) {
+			$parts['footer'] = "<p class='AdvancedMode'><i class='fa fa-flask'></i> " . $this->_('Advanced Mode') . "</p>";
+		}
+		foreach($this->preRenderURLs as $url) {
+			$parts['head'] .= "<link rel='prerender' href='$url'>";
+		}
 		return $parts; 
 	}
 	
@@ -191,7 +217,7 @@ abstract class AdminTheme extends WireData implements Module {
 		}
 
 		// this will be the 2nd admin theme installed, so add a field that lets them select admin theme
-		$field = new Field();
+		$field = $this->wire(new Field());
 		$field->name = 'admin_theme';
 		$field->type = $this->wire('modules')->get('FieldtypeModule'); 
 		$field->set('moduleTypes', array('AdminTheme')); 
@@ -214,6 +240,18 @@ abstract class AdminTheme extends WireData implements Module {
 		$this->message($toUseNote); 
 	}
 
+	/**
+	 * Set a pre-render URL or get currently pre-render URL(s)
+	 * 
+	 * @param string $url
+	 * @return array
+	 * 
+	 */
+	public function preRenderURL($url = '') {
+		if(!empty($url)) $this->preRenderURLs[] = $url;
+		return $this->preRenderURLs;
+	}
+	
 	public function ___uninstall() { 
 
 		/*

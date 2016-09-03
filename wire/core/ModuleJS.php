@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire ModuleJS
@@ -10,12 +10,11 @@
  * 
  * See the Module interface (Module.php) for details about each method. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
- * 
+ *
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  * 
  * @method ModuleJS use(string $name)
  *
@@ -83,7 +82,7 @@ abstract class ModuleJS extends WireData implements Module {
 	 *
 	 * @param string $name
 	 * @param string $file
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function addComponent($name, $file) {
@@ -95,7 +94,7 @@ abstract class ModuleJS extends WireData implements Module {
 	 * Add an array of optional components
 	 *
 	 * @param array $components
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function addComponents(array $components) {
@@ -135,8 +134,8 @@ abstract class ModuleJS extends WireData implements Module {
 			foreach($this->requested as $name) {
 				$url = $this->components[$name]; 
 				if(strpos($url, '/') === false) {
-					$url = $config->urls->$class . $url;
 					$mtime = filemtime($config->paths->$class . $url);
+					$url = $config->urls->$class . $url;
 				}
 				$url .= "?v=$mtime";
 				$this->wire('config')->scripts->add($url);
@@ -151,7 +150,7 @@ abstract class ModuleJS extends WireData implements Module {
 	 * Use an extra named component
 	 *
 	 * @param $name
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function ___use($name) {

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Language Parser
@@ -7,12 +7,9 @@
  *
  * Return the results by calling $parser->getUntranslated() and $parser->getComments();
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
- * 
+ *
  *
  */
 
@@ -137,7 +134,7 @@ class LanguageParser extends Wire {
 		// Find $this->_('text') style matches
 		preg_match_all(	'/(>_)\(\s*' .				// $this->_( 
 				'([\'"])(.+?)(?<!\\\\)\\2' . 		// "text"
-				'\s*\)+(.*)$/m', 				// ) and everything else
+				'\s*\)+(.*)$/m',					// and everything else
 				$data, $matches[1]); 
 
 		// Find __('text', textdomain) style matches

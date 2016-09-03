@@ -208,19 +208,32 @@ function InputfieldDependencies($target) {
 			consoleLog('conditionValue: ' + conditionValue);
 			var fieldID = "#Inputfield_" + conditionField + "_" + conditionValue;
 			$field = $(fieldID);
+			var inputType = $field.attr('type');
 
 			if($field.length) {
-				consoleLog("Found checkbox via value " + fieldID);
+				consoleLog("Found " + inputType + " via value " + fieldID);
 				// found a matching checkbox/radio field
 				var val = '';
 				if($field.is(":checked")) {
+					// checkbox or radio IS checked
 					val = $field.val();
-					consoleLog("Checkbox IS checked: " + fieldID);
+					consoleLog(inputType + " IS checked: " + fieldID);
+				} else if($field.attr('type') == 'radio') {
+					// radio: one we are looking for is NOT checked, but determine which one is checked
+					consoleLog(inputType + " is NOT checked: " + fieldID);
+					var $checkedField = $field.closest('form').find("input[name=" + $field.attr('name') + "]:checked");
+					if($checkedField.length) {
+						val = $checkedField.val();
+						consoleLog("Checked value is: " + val);
+					}
 				} else {
-					consoleLog("Checkbox is NOT checked: " + fieldID);
-					// checkbox/radio: if the field is not checked then we assume a blank value
+					// checkbox: if the field is not checked then we assume a blank value
+					consoleLog(inputType + " is NOT checked: " + fieldID);
 				}
-				if(val.length) value.push(val);
+				if(val.length) {
+					consoleLog('Pushing checked value: ' + val);
+					value.push(val);
+				}
 				continue;
 			}
 
@@ -373,10 +386,11 @@ function InputfieldDependencies($target) {
 				if (condition.operator == '!=') numMatchesRequired = (values.length * condition.values.length);
 				// consoleLog([values, condition.values, numMatchesRequired]);
 
-				// also allow for matching a "0" as an unchecked value
+				// also allow for matching a "0" as an unchecked value, but only if there's isn't already an input with that value
 				if(($field.attr('type') == 'checkbox' || $field.attr('type') == 'radio') && !$field.is(":checked")) {
-					// @todo this part will no longer work with multi-checkbox/radio fields
-					values[1] = '0';
+					if($("#Inputfield_" + conditionField + "_0").length == 0) {
+						values[1] = '0';
+					}
 				}
 
 				// cycle through the values (most of the time, just 1 value).
@@ -906,11 +920,29 @@ function InputfieldStates($target) {
 	function InputfieldStateAjaxClick($li) {
 		
 		function headerHighlightEffect($header, $li) {
-			$header.fadeTo('fast', 0.5, function() {
-				$header.fadeTo('fast', 1.0, function() {
-					if($li.hasClass('InputfieldAjaxLoading')) headerHighlightEffect($header, $li);
-				});
-			});
+			
+			var $spinner = $("<i class='fa fa-spin fa-spinner'></i>");
+			var offset = $header.offset();
+			var interval;
+			var maxRuns = 10;
+			var runs = 0;
+			
+			$("body").append($spinner.hide());
+			
+			$spinner.css({
+				position: 'absolute',	
+				top: offset.top - ($spinner.height() + 5),
+				left: offset.left + ($header.width() / 2) + ($spinner.width() * 0.8)
+			}).fadeIn();
+			
+			interval = setInterval(function() {
+				if(++runs > maxRuns || !$li.hasClass('InputfieldAjaxLoading')) {
+					clearInterval(interval);
+					$spinner.fadeOut('normal', function() {
+						$spinner.remove();
+					});
+				}
+			}, 500);
 		}
 		
 		// check for ajax rendered Inputfields
@@ -956,7 +988,11 @@ function InputfieldStates($target) {
 				if($spinner) $spinner.fadeOut('fast', function() {
 					$spinner.remove();
 				});
-				$header.click();
+				if(isTab) {
+					$header.effect('highlight', 500);
+				} else {
+					$header.click();
+				}
 			}, 500);
 		}, 'html');
 		
@@ -971,6 +1007,9 @@ function InputfieldStates($target) {
 	$icon.toggleClass($icon.attr('data-to'));
 	
 	// display a detail with the HTML field name when the toggle icon is hovered
+	if(typeof ProcessWire != "undefined") {
+		var config = ProcessWire.config;
+	} 
 	if(typeof config !== "undefined" && config.debug) {
 		$('label.InputfieldHeader > i.toggle-icon', $target).hover(function() {
 			var $label = $(this).parent('label');
@@ -1012,7 +1051,7 @@ function InputfieldStates($target) {
 			
 		if(isCollapsed || wasCollapsed || isIcon) {
 			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
-			$li.trigger(isCollapsed ? 'openReady' : 'closeReady'); 
+			$li.trigger(isCollapsed ? 'openReady' : 'closeReady');
 			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
 				if(isCollapsed) {
 					$li.trigger('opened');
@@ -1063,12 +1102,23 @@ function InputfieldStates($target) {
 	});
 
 	// confirm changed forms that user navigates away from before submitting
-	$(document).on('change', '.InputfieldFormConfirm :input', function() {
-		$(this).closest('.Inputfield').addClass('InputfieldStateChanged');
+	$(document).on('change', '.InputfieldFormConfirm :input, .InputfieldFormConfirm .Inputfield', function() {
+		var $this = $(this);	
+		if($this.hasClass('Inputfield')) {
+			// an .Inputfield element
+			if(!$this.hasClass('InputfieldIgnoreChanges')) $this.addClass('InputfieldStateChanged');
+			return false;
+		} else {
+			// an :input element
+			if($this.hasClass('InputfieldIgnoreChanges') || $this.closest('.InputfieldIgnoreChanges').length) return false;
+			$this.closest('.Inputfield').addClass('InputfieldStateChanged');
+		}
 	});
+	
 	$(document).on('submit', '.InputfieldFormConfirm', function() {
 		$(this).addClass('InputfieldFormSubmitted');
 	});
+	
 	window.addEventListener("beforeunload", InputfieldFormBeforeUnloadEvent);
 }
 
@@ -1207,10 +1257,25 @@ jQuery(document).ready(function($) {
 		var $t = $(this);
 		var $form = $t.closest('form');
 		var fieldName = $t.attr('id').replace('wrap_Inputfield_', ''); 
-		var url = $form.attr('action') + '&field=' + fieldName + '&reloadInputfieldAjax=' + fieldName;
+		var url = $form.attr('action');
+		if(fieldName.indexOf('_repeater') > 0) {
+			var pageID = $t.closest('.InputfieldRepeaterItem').attr('data-page');
+			url = url.replace(/\?id=\d+/, '?id=' + pageID);
+			fieldName = fieldName.replace(/_repeater\d+$/, '');
+		}
+		url += url.indexOf('?') > -1 ? '&' : '?';
+		url += 'field=' + fieldName + '&reloadInputfieldAjax=' + fieldName;
 		consoleLog('Inputfield reload: ' + fieldName); 
 		$.get(url, function(data) {
-			var $content = $(data).find("#" + $t.attr('id')).children(".InputfieldContent");
+			var id = $t.attr('id');
+			var $content = $(data).find("#" + id).children(".InputfieldContent");
+			if(!$content.length && id.indexOf('_repeater') > -1) {
+				id = 'wrap_Inputfield_' + fieldName;	
+				$content = $(data).find("#" + id).children(".InputfieldContent");
+				if(!$content.length) {
+					console.log("Unable to find #" + $t.attr('id') + " in response from " + url);
+				}
+			}
 			$t.children(".InputfieldContent").html($content.html());
 			if(typeof jQuery.ui != 'undefined') $t.effect("highlight", 1000); 
 			$t.trigger('reloaded', [ 'reload' ]); 

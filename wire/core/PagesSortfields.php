@@ -1,14 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PagesSortfields
  *
  * Manages the table for the sortfield property for Page children.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -38,8 +35,8 @@ class PagesSortfields extends Wire {
 				"ON DUPLICATE KEY UPDATE sortfield=VALUES(sortfield)";
 		
 		$query = $database->prepare($sql);
-		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
-		$query->bindValue(":sortfield", $sortfield, PDO::PARAM_STR);
+		$query->bindValue(":page_id", $page_id, \PDO::PARAM_INT);
+		$query->bindValue(":sortfield", $sortfield, \PDO::PARAM_STR);
 		$result = $query->execute();
 		
 		return $result;
@@ -55,7 +52,7 @@ class PagesSortfields extends Wire {
 	public function delete(Page $page) {
 		$database = $this->wire('database');
 		$query = $database->prepare("DELETE FROM pages_sortfields WHERE pages_id=:page_id"); // QA
-		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT); 
+		$query->bindValue(":page_id", $page->id, \PDO::PARAM_INT); 
 		$result = $query->execute();
 		return $result;
 	}
@@ -80,7 +77,7 @@ class PagesSortfields extends Wire {
 		}
 
 		if(ctype_digit("$sortfield") || !Fields::isNativeName($sortfield)) {
-			$field = $this->fuel('fields')->get($sortfield);
+			$field = $this->wire('fields')->get($sortfield);
 			if($field) $sortfield = $field->name; 
 				else $sortfield = '';
 		}
@@ -111,7 +108,7 @@ class PagesSortfields extends Wire {
 		}
 
 		if($sortfield && !Fields::isNativeName($sortfield)) { 
-			if($field = $this->fuel('fields')->get($sortfield)) $sortfield = $field->id; 
+			if($field = $this->wire('fields')->get($sortfield)) $sortfield = $field->id; 
 				else $sortfield = '';
 		}
 

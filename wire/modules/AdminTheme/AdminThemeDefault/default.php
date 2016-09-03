@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * default.php
@@ -15,17 +15,18 @@ if(!defined("PROCESSWIRE")) die();
 if(!isset($content)) $content = '';
 	
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
-$version = $adminTheme->version . 'f';
+$version = $adminTheme->version . 'h';
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main-classic") . ".css?v=$version"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css?v=$version"); 
 	
 $ext = $config->debug ? "js" : "min.js";
-$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.$ext?v=$version"); 
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.$ext?v=$version");
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/main.$ext?v=$version"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.$ext?v=$version");
 	
 require_once(dirname(__FILE__) . "/AdminThemeDefaultHelpers.php");
-$helpers = new AdminThemeDefaultHelpers();
+$helpers = $this->wire(new AdminThemeDefaultHelpers());
 $extras = $adminTheme->getExtraMarkup();
 
 ?><!DOCTYPE html>
@@ -110,8 +111,8 @@ $extras = $adminTheme->getExtraMarkup();
 				<?php endif; ?>
 				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo $helpers->_('Logout'); ?></a>
 			</span>
-			<?php endif; ?>
 			ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?>
+			<?php endif; ?>
 			</p>
 
 			<?php 

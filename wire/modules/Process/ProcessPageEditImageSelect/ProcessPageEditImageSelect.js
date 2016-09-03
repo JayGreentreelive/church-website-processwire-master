@@ -23,14 +23,23 @@ function setupProcessSaveReloaded(fileID, isNew) {
 		setTimeout(function() { parent.jQuery('#' + fileID).slideDown(); }, 900);
 	} else {
 		parent.jQuery('#' + fileID).find('img').hide();
-		setTimeout(function() { parent.jQuery('#' + fileID).find('img').fadeIn(); }, 500);
+		setTimeout(function() {
+			parent.jQuery('#' + fileID).find('img').fadeIn('normal', function() {
+				parent.jQuery('#' + fileID).find('.gridImage__edit').click();
+			});
+			//if($item2.length) $item2.fadeIn();
+		}, 500);
 	}
 	closePWImageDialog();
 }
 
 function setupProcessSave(fieldName, fileID, isNew) {
-	parent.jQuery('#wrap_Inputfield_' + fieldName).trigger('reload');
 	var finished = false;
+	var $inputfield = parent.jQuery('#wrap_Inputfield_' + fieldName);
+	if(!$inputfield.length) {
+		$inputfield = parent.jQuery('#' + fileID).closest('.Inputfield');
+	}
+	$inputfield.trigger('reload');
 	parent.jQuery('.Inputfield').on('reloaded', function() {
 		if(finished) return;
 		finished = true;
@@ -55,8 +64,8 @@ function setupExecuteVariations() {
 			$("input.delete").removeAttr('checked');
 		}
 		event.stopPropagation();
-	}); 
-	
+	});
+
 	var magnificOptions = {
 		type: 'image',
 		closeOnContentClick: true,
@@ -501,9 +510,9 @@ function setupSelectedImage() {
 		/*** INIT: setupImage ******************************************************/
 			
 		// adjust height of wrap_info so that there is no change when crop buttons are turned on
-		var $wrapInfo = $("#wrap_info"); 
-		$wrapInfo.css('min-height', $wrapInfo.height() + 'px'); 
-		$wrapInfo.children("span").css("min-height", $wrapInfo.height() + 'px'); 
+		//var $wrapInfo = $("#wrap_info"); 
+		//$wrapInfo.css('min-height', $wrapInfo.height() + 'px'); 
+		//$wrapInfo.children("span").css("min-height", $wrapInfo.height() + 'px'); 
 		$("#loading_button").hide();
 		
 		if($img.attr('data-fit')) {

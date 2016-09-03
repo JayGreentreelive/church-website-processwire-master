@@ -1,13 +1,12 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * WireAction
  *
  * Base class for actions in ProcessWire
  * 
- * ProcessWire 2.x
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
  */
 abstract class WireAction extends WireData implements Module {
@@ -59,7 +58,7 @@ abstract class WireAction extends WireData implements Module {
 	 *
 	 */
 	public function getItemType() {
-		return 'Wire';
+		return strlen(__NAMESPACE__) ? __NAMESPACE__ . '\\Wire' : 'Wire';
 	}
 
 	/**
@@ -100,7 +99,7 @@ abstract class WireAction extends WireData implements Module {
 		try {
 			$result = $this->action($item); 
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, true);
 			$result = false; 
 			$this->error($e->getMessage()); 

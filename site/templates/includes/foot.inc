@@ -10,15 +10,15 @@
                   <div class='col-xs-6 col-md-10 col-sm-9' >
 
                           <div class='item'><a href='#'>Share Your Story</a></div>
-                          <div class='item'><a href="#">716.555.1234</a></div>
-                          <div class='item'><a href='#'>info@crosspointchurch.church</a></div>
+                          <div class='item'><a href="#">812.882.2737</a></div>
+                          <div class='item'><a href='#'>info@thursdaychurch.org</a></div>
                   </div>
                   <div class='col-xs-6 col-md-2 col-sm-3' >
                         <div class='pull-right'>
-                           <a target="_blank" href='https://facebook.com' class='social-fb'><i class="icon-facebook  "></i></a>
+                           <a target="_blank" href='https://facebook.com/thursdaychurch2008' class='social-fb'><i class="icon-facebook  "></i></a>
                            <a target="_blank" href='https://twitter.com' class='social-tw'><i class="icon-twitter"></i></a>
-                           <a target="_blank" href='https://instagram.com' class='social-in'><i class="icon-instagram "></i></a>
-                           <a target="_blank" href='https://youtube.com' class='social-yt'><i class="icon-youtube "></i></a>
+                           <a target="_blank" href='https://www.instagram.com/thursday_church/' class='social-in'><i class="icon-instagram "></i></a>
+                           <a target="_blank" href='https://youtube.com/thursdaychurchvin' class='social-yt'><i class="icon-youtube "></i></a>
                         </div>
                   </div>
               </div>
@@ -34,7 +34,7 @@
               <div class='row mg-t-md mg-b-md'>
                   <div class='col-md-12'>
 
-                    <p>&copy; <?php echo date("Y");?> Cross Point Church
+                    <p>&copy; <?php echo date("Y");?> Thursday Church
 
                       </p>
                   </div>
@@ -76,14 +76,14 @@
 
     <?php
 
-
+/*
     // If the page is editable, then output a link that takes us straight to the page edit screen:
      if( !isset($external_page) ) {
       if(wire('page')->editable()) {
           echo "<a  id='editpage' href='".wire("config")->urls->admin."page/edit/?id=".wire('page')->id."'>Edit</a>";
       }
     }
-
+*/
     ?>
 
 

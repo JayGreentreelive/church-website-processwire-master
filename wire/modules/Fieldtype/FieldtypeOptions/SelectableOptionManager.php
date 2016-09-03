@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Selectable Option Manager, for FieldtypeOptions
@@ -6,10 +6,7 @@
  * Handles management of the fieldtype_options table and related field_[name] table
  * to assist FieldtypeOptions module. 
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -141,7 +138,7 @@ class SelectableOptionManager extends Wire {
 		$query->bindValue(':fields_id', $field->id);
 		$query->execute();
 
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 		
 			$option = $this->arrayToOption($row); 
 
@@ -159,7 +156,7 @@ class SelectableOptionManager extends Wire {
 			}
 		}
 
-		$options = new SelectableOptionArray();
+		$options = $this->wire(new SelectableOptionArray());
 		$options->setField($field); 
 		foreach($sorted as $option) {
 			if(!empty($option)) $options->add($option);
@@ -187,20 +184,20 @@ class SelectableOptionManager extends Wire {
 			return $this->getOptions($field, array($property => $value));
 		}
 		
-		$query = new DatabaseQuerySelect();
+		$query = $this->wire(new DatabaseQuerySelect());
 		$query->select('*'); 
 		$query->from(self::optionsTable); 
 		$query->where("fields_id=:fields_id"); 
 		$query->bindValue(':fields_id', $field->id); 
 		
-		$ft = new DatabaseQuerySelectFulltext($query);
+		$ft = $this->wire(new DatabaseQuerySelectFulltext($query));
 		$ft->match(self::optionsTable, $property, $operator, $value);
 	
 		$result = $query->execute();
-		$options = new SelectableOptionArray();
+		$options = $this->wire(new SelectableOptionArray());
 		$options->setField($field); 
 		
-		while($row = $result->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $result->fetch(\PDO::FETCH_ASSOC)) {
 			$option = $this->arrayToOption($row); 
 			$options->add($option); 
 		}
@@ -218,7 +215,7 @@ class SelectableOptionManager extends Wire {
 	 * 
 	 */
 	protected function arrayToOption(array $a) {
-		$option = new SelectableOption();
+		$option = $this->wire(new SelectableOption());
 		if(isset($a['id'])) $option->set('id', (int) $a['id']); 
 		if(isset($a['option_id'])) $option->set('id', (int) $a['option_id']);
 		if(isset($a['title'])) $option->set('title', $a['title']);
@@ -307,9 +304,9 @@ class SelectableOptionManager extends Wire {
 	 * 
 	 */
 	protected function optionsArrayToObjects(array $value) {
-		$options = new SelectableOptionArray();
+		$options = $this->wire(new SelectableOptionArray());
 		foreach($value as $o) {
-			$option = new SelectableOption();
+			$option = $this->wire(new SelectableOption());
 			foreach($o as $k => $v) {
 				$option->set($k, $v); 
 			}
@@ -564,7 +561,7 @@ class SelectableOptionManager extends Wire {
 			}
 			try {
 				if($query->execute()) $cnt++;
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error("Option $option->id '$option->title': " . $e->getMessage());
 				if(strpos($e->getMessage(), '42S22')) $this->updateLanguages();
 			}
@@ -656,7 +653,7 @@ class SelectableOptionManager extends Wire {
 		$query->bindValue(':fields_id', $field->id);
 		$query->execute();
 
-		list($max) = $query->fetch(PDO::FETCH_NUM);
+		list($max) = $query->fetch(\PDO::FETCH_NUM);
 
 		$sql = 	
 			"INSERT INTO " . self::optionsTable . " " .
@@ -680,7 +677,7 @@ class SelectableOptionManager extends Wire {
 				if($query->execute()) $cnt++;
 				$option->id = $database->lastInsertId();
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 		}
@@ -718,15 +715,15 @@ class SelectableOptionManager extends Wire {
 
 			try {
 				$database->exec("ALTER TABLE $table ADD $titleCol TEXT");
-				$database->exec("ALTER TABLE $table ADD UNIQUE $titleCol ($titleCol(255), fields_id)");
-			} catch(Exception $e) {
+				$database->exec("ALTER TABLE $table ADD UNIQUE $titleCol ($titleCol(250), fields_id)");
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 			try {
-				$database->exec("ALTER TABLE $table ADD $valueCol VARCHAR(255)");
-				$database->exec("ALTER TABLE $table ADD INDEX $valueCol ($valueCol(255), fields_id)");
+				$database->exec("ALTER TABLE $table ADD $valueCol VARCHAR(250)");
+				$database->exec("ALTER TABLE $table ADD INDEX $valueCol ($valueCol(250), fields_id)");
 				$database->exec("ALTER TABLE $table ADD FULLTEXT {$titleCol}_$valueCol ($titleCol, $valueCol)");
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 		}
@@ -734,7 +731,7 @@ class SelectableOptionManager extends Wire {
 		// check for deleted languages
 		$query = $database->prepare("SHOW COLUMNS FROM $table LIKE 'title%'");
 		$query->execute();
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			$name = $row['Field'];
 			if($name === 'title') continue; 
 			$id = (int) str_replace('title', '', $name); 	
@@ -749,7 +746,7 @@ class SelectableOptionManager extends Wire {
 				$database->exec("ALTER TABLE $table DROP INDEX {$titleCol}_$valueCol");
 				$database->exec("ALTER TABLE $table DROP $titleCol");
 				$database->exec("ALTER TABLE $table DROP $valueCol");
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 		}
@@ -769,11 +766,11 @@ class SelectableOptionManager extends Wire {
 				"fields_id INT UNSIGNED NOT NULL, " .
 				"option_id INT UNSIGNED NOT NULL, " .
 				"`title` TEXT, " .
-				"`value` VARCHAR(255), " .
+				"`value` VARCHAR(250), " .
 				"sort INT UNSIGNED NOT NULL, " .
 				"PRIMARY KEY (fields_id, option_id), " .
-				"UNIQUE title (title(255), fields_id), " .
-				"INDEX `value` (`value`(255), fields_id), " .
+				"UNIQUE title (title(250), fields_id), " .
+				"INDEX `value` (`value`(250), fields_id), " .
 				"INDEX sort (sort, fields_id), " .
 				"FULLTEXT title_value (`title`, `value`)" .
 				") ENGINE=$engine DEFAULT CHARSET=$charset";

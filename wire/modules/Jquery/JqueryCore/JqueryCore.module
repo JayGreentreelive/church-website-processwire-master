@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Class JqueryCore
@@ -36,6 +36,9 @@ class JqueryCore extends ModuleJS {
 			'cookie' => 'jquery.cookie.js',
 			'iframe-resizer' => 'iframe-resizer.min.js',
 			'iframe-resizer-frame' => 'iframe-resizer-frame.min.js', 
+			'longclick' => 'jquery.longclick.min.js',
+			'simulate' => 'jquery.simulate.min.js',
+			'xregexp' => 'xregexp.js', // no "min.js" intended
 			));
 		$info = self::getModuleInfo();
 		$this->config->scripts->prepend($this->config->urls->JqueryCore . "JqueryCore.js?v=$info[version]");

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Default.php
@@ -7,10 +7,7 @@
  * Copyright (C) 2015 by Tom Reno (Renobird)
  * http://www.tomrenodesign.com
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  */
@@ -18,7 +15,7 @@
 if(!defined("PROCESSWIRE")) die();
 
 if(!isset($content)) $content = '';
-$version = $adminTheme->version . 'h';
+$version = $adminTheme->version . 'j';
 $ext = $config->debug ? "js" : "min.js";
 
 // Search form
@@ -36,10 +33,11 @@ $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-
 
 // Scripts
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.$ext?v=$version");
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/main.$ext?v=$version");
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.$ext?v=$version");
 
 require_once(dirname(__FILE__) . "/AdminThemeRenoHelpers.php");
-$helpers = new AdminThemeRenoHelpers();
+$helpers = $this->wire(new AdminThemeRenoHelpers());
 $extras = $adminTheme->getExtraMarkup();
 
 ?>
@@ -128,8 +126,8 @@ $extras = $adminTheme->getExtraMarkup();
 						<?php endif; ?>
 							<a class="action" href="<?php echo $config->urls->admin; ?>login/logout/"><i class="fa <?php echo $adminTheme->signout;?>"></i> <?php echo $helpers->_('Logout'); ?></a>
 						</span>
+						ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?>
 					<?php endif; ?>
-					ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 
 				</p>
 				
 				<?php

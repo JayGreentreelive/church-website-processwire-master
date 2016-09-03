@@ -1,15 +1,18 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire HTTP tools
  *
  * Provides capability for sending POST/GET requests to URLs
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * #pw-summary WireHttp enables you to send HTTP requests to URLs, download files, and more. 
  * 
+ * Thanks to @horst for his assistance with several methods in this class.
+ * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @method bool|string send($url, $data = array(), $method = 'POST')
  *
  */
 
@@ -20,11 +23,15 @@ class WireHttp extends Wire {
 	/**
 	 * Default timeout seconds for send() methods: GET, POST, etc.
 	 * 
+	 * #pw-internal
+	 * 
 	 */
 	const defaultTimeout = 4.5;
 
 	/**
 	 * Default timeout seconds for download() methods. 
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	const defaultDownloadTimeout = 50; 
@@ -47,7 +54,7 @@ class WireHttp extends Wire {
 	 * HTTP methods we are allowed to use
 	 *
 	 */
-	protected $allowHttpMethods = array('GET', 'POST', 'PUT', 'DELETE', 'HEAD'); 
+	protected $allowHttpMethods = array('GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'PATCH'); 
 
 	/**
 	 * Headers to include in the request
@@ -93,7 +100,6 @@ class WireHttp extends Wire {
 		444 => 'No Response (Nginx)',
 		449 => 'Retry With (Microsoft)',
 		450 => 'Blocked by Windows Parental Controls (Microsoft)',
-		451 => 'Redirect (Microsoft)',
 		451 => 'Unavailable For Legal Reasons (Internet draft)',
 		494 => 'Request Header Too Large (Nginx)',
 		495 => 'Cert Error (Nginx)',
@@ -101,7 +107,6 @@ class WireHttp extends Wire {
 		497 => 'HTTP to HTTPS (Nginx)',
 		498 => 'Token expired/invalid (Esri)',
 		499 => 'Client Closed Request (Nginx)',
-		499 => 'Token required (Esri)',
 		500 => 'Internal Server Error',
 		501 => 'Not Implemented',
 		502 => 'Bad Gateway',
@@ -207,10 +212,22 @@ class WireHttp extends Wire {
 	}
 
 	/**
-	 * Send to a URL using POST
+	 * Send a POST request to a URL
+	 * 
+	 * ~~~~~
+	 * $http = new WireHttp();
+	 * $response = $http->post("http://domain.com/path/", [
+	 *   'foo' => bar',
+	 * ]); 
+	 * if($response) {
+	 *   echo "Successful response: " . $sanitizer->entities($response); 
+	 * } else {
+	 *   echo "HTTP request failed: " . $http->getError();
+	 * }
+	 * ~~~~~
 	 *
 	 * @param string $url URL to post to (including http:// or https://)
-	 * @param mixed $data Array of data to send (if not already set before) or raw data
+	 * @param mixed $data Associative array of data to send (if not already set before), or raw data to send.
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
@@ -220,10 +237,22 @@ class WireHttp extends Wire {
 	}
 
 	/**
-	 * Send to a URL using GET
+	 * Send a GET request to URL
+	 * 
+	 * ~~~~~
+	 * $http = new WireHttp();
+	 * $response = $http->get("http://domain.com/path/", [
+	 *   'foo' => bar',
+	 * ]);
+	 * if($response) {
+	 *   echo "Successful response: " . $sanitizer->entities($response);
+	 * } else {
+	 *   echo "HTTP request failed: " . $http->getError();
+	 * }
+	 * ~~~~~
 	 *
-	 * @param string $url URL to post to (including http:// or https://)
-	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @param string $url URL to send request to (including http:// or https://)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send.
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
@@ -232,9 +261,9 @@ class WireHttp extends Wire {
 	}
 
 	/**
-	 * Send to a URL that responds with JSON using GET and return the resulting array or object
+	 * Send to a URL that responds with JSON (using GET request) and return the resulting array or object.
 	 *
-	 * @param string $url URL to post to (including http:// or https://)
+	 * @param string $url URL to send request to (including http:// or https://)
 	 * @param bool $assoc Default is to return an array (specified by TRUE). If you want an object instead, specify FALSE. 
 	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
 	 * @return bool|array|object False on failure or an array or object on success. 
@@ -245,7 +274,7 @@ class WireHttp extends Wire {
 	}
 
 	/**
-	 * Send to a URL using HEAD (@horst)
+	 * Send to a URL using a HEAD request
 	 *
 	 * @param string $url URL to request (including http:// or https://)
 	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
@@ -258,7 +287,7 @@ class WireHttp extends Wire {
 	}
 
 	/**
-	 * Send to a URL using HEAD and return the status code (@horst)
+	 * Send to a URL using a HEAD request and return the status code
 	 *
 	 * @param string $url URL to request (including http:// or https://)
 	 * @param mixed $data Array of data to send (if not already set before) or raw data
@@ -286,6 +315,9 @@ class WireHttp extends Wire {
 
 	/**
 	 * Set an array of headers, removes any existing headers
+	 * 
+	 * @param array $headers Associative array of headers to set
+	 * @return $this
 	 *
 	 */
 	public function setHeaders(array $headers) {
@@ -297,6 +329,10 @@ class WireHttp extends Wire {
 
 	/**
 	 * Send an individual header to send
+	 * 
+	 * @param string $key Header name
+	 * @param string $value Header value
+	 * @return $this
 	 *
 	 */
 	public function setHeader($key, $value) {
@@ -308,7 +344,8 @@ class WireHttp extends Wire {
 	/**
 	 * Set an array of data, removes any existing data
 	 *
-	 *  
+	 * @param array $data Associative array of data
+	 * @return $this
 	 *
 	 */
 	public function setData($data) {
@@ -332,6 +369,9 @@ class WireHttp extends Wire {
 
 	/**
 	 * Allows setting to $data via $http->key = $value
+	 * 
+	 * @param string $key
+	 * @param mixed $value
 	 *
 	 */
 	public function __set($key, $value) {
@@ -340,6 +380,9 @@ class WireHttp extends Wire {
 
 	/**
 	 * Enables getting from $data via $http->key 
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function __get($key) {
@@ -347,15 +390,15 @@ class WireHttp extends Wire {
 	}	
 
 	/**
-	 * Send the given $data array to a URL using either POST, GET, PUT or DELETE
+	 * Send the given $data array to a URL using given method (i.e. POST, GET, PUT, DELETE, etc.)
 	 *
-	 * @param string $url URL to post to (including http:// or https://)
-	 * @param array $data Array of data to send (if not already set before)
-	 * @param string $method Method to use (either POST, GET, PUT or DELETE)
+	 * @param string $url URL to send to (including http:// or https://).
+	 * @param array $data Array of data to send (if not already set before).
+	 * @param string $method Method to use (either POST, GET, PUT, DELETE or others as needed).
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
-	protected function send($url, $data = array(), $method = 'POST') { 
+	public function ___send($url, $data = array(), $method = 'POST') { 
 
 		$url = $this->validateURL($url, false); 
 		if(empty($url)) return false;
@@ -555,14 +598,14 @@ class WireHttp extends Wire {
 	/**
 	 * Download a file from a URL and save it locally
 	 * 
-	 * First it will attempt to use CURL. If that fails, it will try fopen, 
-	 * unless you specify a useMethod in $options.
+	 * First it will attempt to use CURL. If that fails, it will try `fopen()`, 
+	 * unless you specify a `useMethod` in `$options`.
 	 * 
 	 * @param string $fromURL URL of file you want to download.
 	 * @param string $toFile Filename you want to save it to (including full path).
 	 * @param array $options Optional aptions array for PHP's stream_context_create(), plus these optional options: 
-	 * 	- useMethod (string): Specify "curl", "fopen" or "socket" to force a specific method (default=autodetect)
-	 * 	- timeout (float): Number of seconds till timeout
+	 * 	- `useMethod` (string): Specify "curl", "fopen" or "socket" to force a specific method (default=auto-detect).
+	 * 	- `timeout` (float): Number of seconds till timeout.
 	 * @return string Filename that was downloaded (including full path).
 	 * @throws WireException All error conditions throw exceptions. 
 	 * 
@@ -744,10 +787,12 @@ class WireHttp extends Wire {
 	}
 
 	/**
-	 * Get the last HTTP response headers (normal array)
+	 * Get the last HTTP response headers (normal array).
+	 * 
+	 * #pw-internal
 	 * 
 	 * Useful to examine for errors if your request returned false
-	 * However, the getResponseHeaders() plural method may be better
+	 * However, the `WireHttp::getResponseHeaders()` (plural) method may be better
 	 * and this one is kept primarily for backwards compatibility.
 	 *
 	 * @param string $key Optional header name you want to get
@@ -762,10 +807,10 @@ class WireHttp extends Wire {
 	/**
 	 * Get the last HTTP response headers (associative array)
 	 *
-	 * All headers are translated to key => value properties in the array. 
+	 * All headers are translated to `[key => value]` properties in the array. 
 	 * The keys are always lowercase. 
 	 *
-	 * @param string $key Optional header name you want to get
+	 * @param string $key Optional header name you want to get (if you only need one)
 	 * @return array|string|null
 	 *
 	 */
@@ -824,11 +869,86 @@ class WireHttp extends Wire {
 	}
 
 	/**
+	 * Send the contents of the given filename to the current http connection.
+	 *
+	 * This function utilizes the `$config->fileContentTypes` to match file extension
+	 * to content type headers and force-download state.
+	 *
+	 * This function throws a `WireException` if the file can't be sent for some reason.
+	 *
+	 * @param string $filename Filename to send
+	 * @param array $options Options that you may pass in:
+	 *   - `exit` (bool): Halt program executation after file send (default=true). 
+	 *   - `forceDownload` (bool|null): Whether file should force download (default=null, i.e. let content-type header decide).
+	 *   - `downloadFilename` (string): Filename you want the download to show on user's computer, or omit to use existing.
+	 * @param array $headers Headers that are sent. These are the defaults: 
+	 *   - `pragma`: public
+	 *   - `expires`: 0
+	 *   - `cache-control`: must-revalidate, post-check=0, pre-check=0
+	 *   - `content-type`: {content-type} (replaced with actual content type)
+	 *   - `content-transfer-encoding`: binary
+	 *   - `content-length`: {filesize} (replaced with actual filesize)
+	 *	 - To remove a header completely, make its value NULL and it won't be sent.
+	 * @throws WireException
+	 *
+	 */
+	public function sendFile($filename, array $options = array(), array $headers = array()) {
+
+		$_options = array(
+			// boolean: halt program execution after file send
+			'exit' => true,
+			// boolean|null: whether file should force download (null=let content-type header decide)
+			'forceDownload' => null,
+			// string: filename you want the download to show on the user's computer, or blank to use existing.
+			'downloadFilename' => '',
+		);
+
+		$_headers = array(
+			"pragma" => "public",
+			"expires" =>  "0",
+			"cache-control" => "must-revalidate, post-check=0, pre-check=0",
+			"content-type" => "{content-type}",
+			"content-transfer-encoding" => "binary",
+			"content-length" => "{filesize}",
+		);
+
+		$this->wire('session')->close();
+		$options = array_merge($_options, $options);
+		$headers = array_merge($_headers, $headers);
+		if(!is_file($filename)) throw new WireException("File does not exist");
+		$info = pathinfo($filename);
+		$ext = strtolower($info['extension']);
+		$contentTypes = $this->wire('config')->fileContentTypes;
+		$contentType = isset($contentTypes[$ext]) ? $contentTypes[$ext] : $contentTypes['?'];
+		$forceDownload = $options['forceDownload'];
+		if(is_null($forceDownload)) $forceDownload = substr($contentType, 0, 1) === '+';
+		$contentType = ltrim($contentType, '+');
+		if(ini_get('zlib.output_compression')) ini_set('zlib.output_compression', 'Off');
+		$tags = array('{content-type}' => $contentType, '{filesize}' => filesize($filename));
+
+		foreach($headers as $key => $value) {
+			if(is_null($value)) continue;
+			if(strpos($value, '{') !== false) $value = str_replace(array_keys($tags), array_values($tags), $value);
+			header("$key: $value");
+		}
+
+		if($forceDownload) {
+			$downloadFilename = empty($options['downloadFilename']) ? $info['basename'] : $options['downloadFilename'];
+			header("content-disposition: attachment; filename=\"$downloadFilename\"");
+		}
+
+		@ob_end_clean();
+		@flush();
+		readfile($filename);
+		if($options['exit']) exit;
+	}
+
+	/**
 	 * Validate a URL for WireHttp use
 	 *
-	 * @param string $url
+	 * @param string $url URL to validate
 	 * @param bool $throw Whether to throw exception on validation fail (default=false)
-	 * @throws Exception|WireException
+	 * @throws \Exception|WireException
 	 * @return string $url Valid URL or blank string on failure
 	 * 
 	 */
@@ -836,8 +956,8 @@ class WireHttp extends Wire {
 		$options = array(
 			'allowRelative' => false, 
 			'allowSchemes' => $this->allowSchemes, 
-			'requireScheme' => true, 
-			'stripQuotes' => false, 
+			'requireScheme' => true,
+			'stripQuotes' => false,
 			'throw' => true,
 			);
 		try {
@@ -921,7 +1041,7 @@ class WireHttp extends Wire {
 	 *
 	 * @param array|string $schemes Array of schemes or space-separated string of schemes
 	 * @param bool $replace Specify true to replace any existing schemes already allowed (default=false)
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setAllowSchemes($schemes, $replace = false) {
@@ -957,7 +1077,7 @@ class WireHttp extends Wire {
 	 * Set the number of seconds till connection times out 
 	 * 
 	 * @param int|float $seconds
-	 * @return this
+	 * @return $this
 	 * 
 	 */
 	public function setTimeout($seconds) {
@@ -976,7 +1096,17 @@ class WireHttp extends Wire {
 	public function getTimeout() {
 		return $this->timeout === null ? self::defaultTimeout : (float) $this->timeout; 
 	}
-	
+
+	/**
+	 * #pw-internal
+	 * 
+	 * @param $errno
+	 * @param $errstr
+	 * @param $errfile
+	 * @param $errline
+	 * @param $errcontext
+	 * 
+	 */
 	public function _errorHandler($errno, $errstr, $errfile, $errline, $errcontext) {
 		$this->error[] = "$errno: $errstr";
 	}

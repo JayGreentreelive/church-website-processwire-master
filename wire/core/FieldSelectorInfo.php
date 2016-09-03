@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Class that provides information about selectors for Fieldtypes
@@ -9,11 +9,11 @@
  * provide information about what properties can be selected, what operators, are used,
  * and so on. In the future this class will likely come in handy in providing selector
  * validation and improved help and error messaging when building/testing selectors. 
- *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  */
@@ -49,7 +49,7 @@ class FieldSelectorInfo extends Wire {
 		$this->operators = array(
 			'number' => array('=', '!=', '>', '<', '>=', '<=', '=""', '!=""'),
 			'text' => array('=', '!=', '%=', '^=', '$=', '=""', '!=""'),
-			'fulltext' => array('%=', '*=', '~=', '^=', '$=', '=', '!=', '=""', '!=""'),
+			'fulltext' => array('%=', '*=', '~=', '^=', '$=', '=', '!=', '=""', '!=""', '!%=', '!*=', '!~=', '!^=', '!$='),
 			'select' => array('=', '!=')
 			);
 

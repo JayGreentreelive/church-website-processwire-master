@@ -20,7 +20,7 @@ if( $live == true &&  wire('page')->template == 'home')
 
 // page is short by DEFAULT
 $shortHeader = ' top-short-header ';
-$topStyle = '';
+$topStyle = 'background: #490b4d;';
 $curveDown = '';
 
 // or you can force it if need be
@@ -43,7 +43,7 @@ if(wire('page')->template == 'home')
    $top_imgURL = $top_images->header_image->url;
 
 
-   $topStyle = '  background: #bfbfbf url("'.$top_imgURL.'") no-repeat center center; -webkit-background-size: cover;-moz-background-size: cover;-o-background-size: cover;background-size: cover; ';
+   $topStyle = '  background: #490b4d url("'.$top_imgURL.'") no-repeat center center; -webkit-background-size: cover;-moz-background-size: cover;-o-background-size: cover;background-size: cover; ';
    if($live)  $topStyle .= " background-position:center 20px;";
 }
 
@@ -71,7 +71,7 @@ if(count(wire('page')->header_image) > 0 || wire('page')->template == 'series' |
       }
 
 
-      $topStyle = ' background: #bfbfbf url("'.$top_imgURL.'") no-repeat center center; -webkit-background-size: cover;-moz-background-size: cover;-o-background-size: cover;background-size: cover; ';
+      $topStyle = ' background: #490b4d url("'.$top_imgURL.'") no-repeat center center; -webkit-background-size: cover;-moz-background-size: cover;-o-background-size: cover;background-size: cover; ';
        if($live &&  wire('page')->template == 'home')  $topStyle .= " background-position:center 20px;";
 }
 
@@ -127,7 +127,8 @@ if(wire('page')->template == 'home'){
 
      <?php
         $js_top_array = array( 'js/plugins/modernizr/modernizr.min.js',
-                      'js/plugins/jquery/jquery.min.js' )
+                      'js/plugins/jquery/jquery.min.js',
+					  'js/plugins/jquery/live.js' )
     ?>
 
      <script src="<?php echo AIOM::JS( $js_top_array ); ?>"></script>
@@ -180,16 +181,25 @@ if(wire('page')->template == 'home'){
 
   <div id='floating-bar-nav' >
 
-    <?php if($live &&  wire('page')->template == 'home'){?>
+    
 
   <div id='top-bar-live'>
         <div class='container  pd-t-sm pd-b-sm'>
                 <div class='row'>
                     <div class='col-md-12'>
+                    <div id="churchonline_counter">Next Online Service:
+                    <span class="live">
                      <i id='live-btn-icon' class='icon-fw icon-video-camera-1'></i> We are streaming live.  <a id='live-btn'  href='/live/' title="Live" >Watch Now!</a>
+                     </span>
+  <span class="time">
+    <span class="days"></span> <span class="label">days</span>
+    <span class="hours"></span> <span class="label">hrs</span>
+    <span class="minutes"></span> <span class="label">mins</span>
+    <span class="seconds"></span> <span class="label">secs</span>
+</span>
+
               </div></div></div>
    </div>
-   <?php } ?>
 
        <div id='top-quick-menu' class='<?php if($live &&  wire('page')->template == 'home') echo "has-top-live";?>'>
          <div class='container'>
@@ -197,12 +207,13 @@ if(wire('page')->template == 'home'){
                     <div class='col-lg-12'>
                           <div class="logo pull-left">
                             <a href="/" class="crosspoint_logo" title='Cross Point Church'>
-                             <img id="logo-mark"  src='/site/templates/css/img/logo-red.svg'>
-
+                             <img id="logo-mark"  src='/site/templates/css/img/logo.gif'>
                             </a>
                           </div>
                           <div class="top-nav-right pull-right">
                             <a id='menu-btn'  title="Menu" ><span id='menu-btn-icon' class='icon-fw icon-menu-3'></span> Menu</a>
+                            <a id='events-btn' href='/events/'  title="Events" ><span class='icon-fw icon-calendar-1'></span><span class='hidden-xs'> Events</span></a>
+                             <a id='give-btn' class='hidden-xs' href='/connect/giving/'  title="Giving" ><span class='icon-fw icon-heart'></span> Giving</a>
                             <a id='search-btn' title="Search" ><span id='menu-search-btn-icon' class='icon-fw icon-zoom-2'></span><span class='hidden-xs'> Search</span></a>
 
 

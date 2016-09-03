@@ -1,14 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire FileLog
  *
  * Creates and maintains a text-based log file.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -43,7 +40,7 @@ class FileLog extends Wire {
 			$path = dirname($path) . '/';
 		}
 		$this->path = $path; 
-		if(!is_dir($path)) wireMkdir($path);
+		if(!is_dir($path)) $this->wire('files')->mkdir($path);
 	}
 	
 	public function __get($key) {
@@ -81,9 +78,10 @@ class FileLog extends Wire {
 		if(in_array($hash, $this->itemsLogged)) return true; 
 
 		$ts = date("Y-m-d H:i:s"); 
-		$str = $this->cleanStr($str); 
-
-		if($fp = fopen($this->logFilename, "a")) {
+		$str = $this->cleanStr($str);
+		$fp = fopen($this->logFilename, "a");
+		
+		if($fp) {
 			$trys = 0; 
 			$stop = false;
 
@@ -100,7 +98,7 @@ class FileLog extends Wire {
 			}
 
 			fclose($fp); 
-			wireChmod($this->logFilename);
+			$this->wire('files')->chmod($this->logFilename);
 			return true; 
 		} else {
 			return false;
@@ -287,7 +285,7 @@ class FileLog extends Wire {
 	 * @return int|array of strings (associative), each indexed by string containing slash separated 
 	 * 	numeric values of: "current/total/start/end/total" which is useful with pagination.
 	 * 	If the 'toFile' option is used, then return value is instead an integer qty of lines written.
-	 * @throws Exception on fatal error
+	 * @throws \Exception on fatal error
 	 * 
 	 */
 	public function find($limit = 100, $pageNum = 1, array $options = array()) {
@@ -313,7 +311,7 @@ class FileLog extends Wire {
 		if($options['toFile']) {
 			$toFile = $this->path . basename($options['toFile']); 
 			$fp = fopen($toFile, 'w'); 
-			if(!$fp) throw new Exception("Unable to open file for writing: $toFile"); 
+			if(!$fp) throw new \Exception("Unable to open file for writing: $toFile"); 
 		} else {
 			$toFile = '';
 			$fp = null;
@@ -341,7 +339,7 @@ class FileLog extends Wire {
 				$valid = !isset($chunkLineHashes[$hash]);
 				$chunkLineHashes[$hash] = 1; 
 				if($valid) $valid = $this->isValidLine($line, $options, $stopNow);
-				if(!$hasFilters && $limit && count($lines) >= $limit) $stopNow = true; 
+				if(!$hasFilters && $limit && count($lines) >= $limit) $stopNow = true;
 				if($stopNow) break;
 				if(!$valid) continue; 
 				
@@ -364,7 +362,7 @@ class FileLog extends Wire {
 		
 		if($fp) {
 			fclose($fp);
-			wireChmod($toFile); 
+			$this->wire('files')->chmod($toFile); 
 			return $cnt;
 		}
 			
@@ -433,7 +431,7 @@ class FileLog extends Wire {
 
 		$filename = $this->logFilename; 
 
-		if(!$filename || filesize($filename) <= $bytes) return 0; 
+		if(!$filename || !file_exists($filename) || filesize($filename) <= $bytes) return 0; 
 
 		$fpr = fopen($filename, "r"); 	
 		$fpw = fopen("$filename.new", "w"); 
@@ -454,8 +452,8 @@ class FileLog extends Wire {
 
 		if($cnt) {
 			unlink($filename); 
-			rename("$filename.new", $filename); 
-			wireChmod($filename); 
+			rename("$filename.new", $filename);
+			$this->wire('files')->chmod($filename); 
 		} else {
 			@unlink("$filename.new"); 
 		}

@@ -1,17 +1,15 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire TemplateFile
  *
  * A template file that will be loaded and executed as PHP, and it's output returned
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property bool $halt
+ * @method string render()
  *
  */
 
@@ -41,6 +39,24 @@ class TemplateFile extends WireData {
 	 */
 	protected $savedDir;
 
+	/**
+	 * Directory to change to before rendering
+	 * 
+	 * If not set, it will change to the directory that the $filename is in
+	 * 
+	 * @var null|string
+	 * 
+	 */
+	protected $chdir = null;
+
+	/**
+	 * Saved ProcessWire instance
+	 * 
+	 * @var ProcessWire 
+	 * 
+	 */
+	protected $savedInstance; 
+	
 	/**
 	 * Throw exceptions when files don't exist?
 	 * 
@@ -135,6 +151,19 @@ class TemplateFile extends WireData {
 		}
 	}
 
+
+	/**
+	 * Set the directory to temporarily change to during rendering
+	 * 
+	 * If not set, it changes to the directory that $filename is in. 
+	 * 
+	 * @param string $chdir
+	 * 
+	 */
+	public function setChdir($chdir) {
+		$this->chdir = $chdir; 
+	}
+
 	/**
 	 * Sets a variable to be globally accessable to all other TemplateFile instances
 	 *
@@ -168,9 +197,17 @@ class TemplateFile extends WireData {
 			return '';
 		}
 
+		// ensure that wire() functions in template file map to correct ProcessWire instance
+		$this->savedInstance = ProcessWire::getCurrentInstance();
+		ProcessWire::setCurrentInstance($this->wire());
+		
 		$this->savedDir = getcwd();	
 
-		chdir(dirname($this->filename)); 
+		if($this->chdir) {
+			chdir($this->chdir);
+		} else {
+			chdir(dirname($this->filename));
+		}
 		$fuel = array_merge($this->getArray(), self::$globals); // so that script can foreach all vars to see what's there
 
 		extract($fuel); 
@@ -179,7 +216,7 @@ class TemplateFile extends WireData {
 			if($this->halt) break;
 			require($_filename);
 		}
-		if(!$this->halt) require($this->filename); 
+		if(!$this->halt) $returnValue = require($this->filename); 
 		foreach($this->appendFilename as $_filename) {
 			if($this->halt) break;
 			require($_filename);
@@ -188,8 +225,11 @@ class TemplateFile extends WireData {
 		ob_end_clean();
 
 		if($this->savedDir) chdir($this->savedDir); 
-
-		return trim($out); 
+		ProcessWire::setCurrentInstance($this->savedInstance);
+		
+		$out = trim($out); 
+		if(!strlen($out) && !$this->halt && $returnValue && $returnValue !== 1) return $returnValue;
+		return $out;
 	}
 
 	/**
@@ -199,7 +239,7 @@ class TemplateFile extends WireData {
 	 *
 	 */
 	public function getArray() {
-		return array_merge($this->fuel->getArray(), parent::getArray()); 
+		return array_merge($this->wire('fuel')->getArray(), parent::getArray()); 
 	}
 
 	/**

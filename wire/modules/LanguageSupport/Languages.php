@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Languages (plural) Class
@@ -6,10 +6,7 @@
  * Class for managing Language-type pages.
  * Acts as the $wire->languages API variable. 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property LanguageTabs|null $tabs Current LanguageTabs module instance, if installed
@@ -43,14 +40,26 @@ class Languages extends PagesType {
 	/**
 	 * Saved reference to default language
 	 * 
+	 * @var Language|null
+	 * 
 	 */
 	protected $defaultLanguage = null;
 
 	/**
 	 * Saved language from a setDefault() call
 	 * 
+	 * @var Language|null
+	 * 
 	 */
 	protected $savedLanguage = null;
+
+	/**
+	 * Saved language from a setLanguage() call
+	 * 
+	 * @var Language|null
+	 * 
+	 */
+	protected $savedLanguage2 = null;
 
 	/**
 	 * Language-specific page-edit permissions, if installed (i.e. page-edit-lang-es, page-edit-lang-default, etc.)
@@ -67,6 +76,11 @@ class Languages extends PagesType {
 	 * 
 	 */
 	protected $editableCache = array();
+	
+	public function __construct(ProcessWire $wire, $templates = array(), $parents = array()) {
+		parent::__construct($wire, $templates, $parents);
+		$this->wire('database')->addHookAfter('unknownColumnError', $this, 'hookUnknownColumnError');
+	}
 
 	/**
 	 * Return the LanguageTranslator instance for the given language
@@ -76,7 +90,7 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function translator(Language $language) {
-		if(is_null($this->translator)) $this->translator = new LanguageTranslator($language); 
+		if(is_null($this->translator)) $this->translator = $this->wire(new LanguageTranslator($language)); 
 			else $this->translator->setCurrentLanguage($language);
 		return $this->translator; 
 	}
@@ -120,7 +134,7 @@ class Languages extends PagesType {
 	 */
 	public function getIterator() {
 		if($this->languages && count($this->languages)) return $this->languages; 
-		$languages = new PageArray();
+		$languages = $this->wire('pages')->newPageArray();
 		foreach($this->getAll() as $language) { 
 			if($language->hasStatus(Page::statusUnpublished) || $language->hasStatus(Page::statusHidden)) continue; 
 			$languages->add($language); 
@@ -175,6 +189,45 @@ class Languages extends PagesType {
 	}
 
 	/**
+	 * Set the current user language, remembering the previous setting for a later unsetLanguage() call
+	 * 
+	 * @param int|string|Language $language Language id, name or Language object
+	 * @return bool Returns false if no change necessary, true if language was changed
+	 * @throws WireException if given $language argument doesn't resolve
+	 * 
+	 */
+	public function setLanguage($language) {
+		if(is_int($language)) {
+			$language = $this->get($language);
+		} else if(is_string($language)) {
+			$language = $this->get($this->wire('sanitizer')->pageNameUTF8($language));	
+		} 
+		if(!$language instanceof Language || !$language->id) throw new WireException("Unknown language");
+		$user = $this->wire('user');
+		$this->savedLanguage2 = null;
+		if($user->language && $user->language->id) {
+			if($language->id == $user->language->id) return false; // no change necessary
+			$this->savedLanguage2 = $user->language;
+		}
+		$user->language = $language;
+		return true;
+	}
+
+	/**
+	 * Undo a previous setLanguage() call, restoring the previous user language
+	 * 
+	 * @return bool Returns true if language restored, false if no restore necessary
+	 * 
+	 */
+	public function unsetLanguage() {
+		$user = $this->wire('user');
+		if(!$this->savedLanguage2) return false;
+		if($user->language && $user->language->id == $this->savedLanguage2->id) return false;
+		$user->language = $this->savedLanguage2;
+		return true;
+	}
+
+	/**
 	 * Hook called when a language is deleted
 	 * 
 	 * @param Page $language
@@ -216,7 +269,7 @@ class Languages extends PagesType {
 	}
 
 	public function getParent() {
-		return $this->wire('pages')->findOne($this->parent_id, array('loadOptions' => array('autojoin' => false)));
+		return $this->wire('pages')->get($this->parent_id, array('loadOptions' => array('autojoin' => false)));
 	}
 
 	public function getParents() {
@@ -289,7 +342,7 @@ class Languages extends PagesType {
 		$permissions = $this->getPageEditPermissions();
 		if($language === 'none' && isset($permissions['none'])) return $permissions['none'];
 		if(!$language instanceof Language) {
-			$language = $this->get($this->wire('sanitizer')->pageName($language));
+			$language = $this->get($this->wire('sanitizer')->pageNameUTF8($language));
 		}
 		if(!$language || !$language->id) return '';
 		return isset($permissions[$language->name]) ? $permissions[$language->name] : '';
@@ -323,13 +376,12 @@ class Languages extends PagesType {
 			} else {
 				// if the page-edit-lang-none permission doesn't exist, then it's not applicable
 				$has = $user->hasPermission('page-edit');
-				$this->message("none has=" . (int) $has);
 			}
 			$this->editableCache[$cacheKey] = $has;
 			
 		} else {
 			
-			if(!$language instanceof Language) $language = $this->get($this->wire('sanitizer')->pageName($language));
+			if(!$language instanceof Language) $language = $this->get($this->wire('sanitizer')->pageNameUTF8($language));
 			if(!$language || !$language->id) return false;
 		
 			$cacheKey = "$user->id.$language->id";
@@ -365,7 +417,7 @@ class Languages extends PagesType {
 	}
 
 	/**
-	 * Pages calls this when it catches an unknown column exception
+	 * Hook to WireDatabasePDO::unknownColumnError
 	 *
 	 * Provides QA to make sure any language-related columns are property setup in case
 	 * something failed during the initial setup process.
@@ -376,8 +428,9 @@ class Languages extends PagesType {
 	 * @param $column
 	 *
 	 */
-	public function ___unknownColumnError($column) {
-
+	public function hookUnknownColumnError(HookEvent $event) {
+		
+		$column = $event->arguments(0);
 		if(!preg_match('/^([^.]+)\.([^.\d]+)(\d+)$/', $column, $matches)) {
 			return;
 		}

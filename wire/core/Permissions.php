@@ -1,15 +1,18 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * The Permissions class serves as the $permissions API variable. 
  * 
- * @method PageArray find() find($selectorString) Return the permissions(s) matching the the given selector query.
- * @method Role get() get(mixed $selector) Return permission by given name, numeric ID or a selector string.
- * @method array getOptionalPermissions($omitInstalled = true)
+ * #pw-summary Provides management of all Permission pages independent of users, for access control. 
  * 
- * ProcessWire 2.x
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * @method PageArray find($selector) Return the permissions(s) matching the the given selector query.
+ * @method Permission|NullPage get($selector) Return permission by given name, numeric ID or a selector string.
+ * @method array getOptionalPermissions($omitInstalled = true) #pw-internal
+ * @method array saveReady(Page $page) Hook called just before a Permission is saved #pw-hooker
+ * @method void saved(Page $page, array $changes = array(), $values = array()) #pw-hooker
+ * @method void added(Page $page) Hook called just after a Permission is added #pw-hooker
+ * @method void deleteReady(Page $page) Hook called before a Permission is deleted #pw-hooker
+ * @method void deleted(Page $page) Hook called after a permission is deleted #pw-hooker
  *
  */
 class Permissions extends PagesType {
@@ -37,18 +40,24 @@ class Permissions extends PagesType {
 		'page-hide' => 'page-edit',
 		'page-lock' => 'page-edit',
 		'page-edit-created' => 'page-edit',
+		'page-edit-trash-created' => 'page-delete',
 		'page-edit-images' => 'page-edit',
 		'page-rename' => 'page-edit',
 		'user-admin-all' => 'user-admin',
 	);
 
 	/**
-	 * Returns true/false as to whether the system has a permission with given $name installed
+	 * Does the system have a permission with the given name?
 	 * 
-	 * Useful in quickly checking for presence of optional permissions. 
+	 * ~~~~~
+	 * // Check if page-publish permission is available
+	 * if($permissions->has('page-publish')) {
+	 *   // system has the page-publish permission installed
+	 * }
+	 * ~~~~~
 	 * 
 	 * @param string $name Name of permission
-	 * @return bool
+	 * @return bool True if system has a permission with this name, or false if not. 
 	 * 
 	 */
 	public function has($name) {
@@ -76,8 +85,55 @@ class Permissions extends PagesType {
 
 
 	/**
-	 * Get an array of all optional permissions in format: name => label
+	 * Save a Permission
+	 * 
+	 * #pw-group-manipulation
 	 *
+	 * @param Permission|Page $page
+	 * @return bool True on success, false on failure
+	 * @throws WireException
+	 *
+	 */
+	public function ___save(Page $page) {
+		return parent::___save($page);
+	}
+
+	/**
+	 * Permanently delete a Permission
+	 * 
+	 * #pw-group-manipulation
+	 *
+	 * @param Permission|Page $page Permission to delete
+	 * @param bool $recursive If set to true, then this will attempt to delete any pages below the Permission too. 
+	 * @return bool True on success, false on failure
+	 * @throws WireException
+	 *
+	 */
+	public function ___delete(Page $page, $recursive = false) {
+		return parent::___delete($page, $recursive);
+	}
+
+	/**
+	 * Add a new Permission with the given name and return it
+	 * 
+	 * #pw-group-manipulation
+	 *
+	 * @param string $name Name of permission you want to add, i.e. "hello-world"
+	 * @return Permission|Page|NullPage Returns a Permission page on success, or a NullPage on error
+	 *
+	 */
+	public function ___add($name) {
+		return parent::___add($name);
+	}
+
+
+	/**
+	 * Get an associative array of all optional permissions
+	 * 
+	 * Returned permissions are an associative array in the format `['name' => 'label']`. 
+	 * 
+	 * #pw-internal
+	 * 
 	 * @param bool $omitInstalled Specify false to include all optional permissions, whether already installed or not.
 	 * @return array
 	 *
@@ -88,11 +144,12 @@ class Permissions extends PagesType {
 			'page-hide' => $this->_('Hide/unhide pages'),
 			'page-publish' => $this->_('Publish/unpublish pages or edit already published pages'),
 			'page-edit-created' => $this->_('Edit only pages user has created'),
-			'page-edit-images' => $this->_('Use the image editor to manipulate (crop, resize, etc.) images'), 
+			'page-edit-trash-created' => $this->_('User can trash pages they created (without page-delete permission).'), 
+			'page-edit-images' => $this->_('Use the image editor to manipulate (crop, resize, etc.) images'),
 			'page-rename' => $this->_('Change the name of published pages they are allowed to edit'),
 			'user-admin-all' => $this->_('Administer users in any role (except superuser)'),
 		);
-	
+
 		foreach($this->wire('roles') as $role) {
 			if($role->name == 'guest' || $role->name == 'superuser') continue;
 			$a["user-admin-$role->name"] = sprintf($this->_('Administer users in role: %s'), $role->name);
@@ -126,6 +183,8 @@ class Permissions extends PagesType {
 	/**
 	 * Return array of permission names that are delegated to another when not installed
 	 * 
+	 * #pw-internal
+	 * 
 	 * @return array of permission name => delegated permission name
 	 * 
 	 */
@@ -133,11 +192,49 @@ class Permissions extends PagesType {
 		return $this->delegatedPermissions;
 	}
 
+	/**
+	 * Returns all installed Permission pages and enables foreach() iteration of $permissions
+	 * 
+	 * ~~~~~
+	 * // Example of listing all permissions
+	 * foreach($permissions as $permission) {
+	 *   echo "<li>$permission->name</li>";
+	 * }
+	 * ~~~~~
+	 *
+	 * @return \ArrayObject
+	 *
+	 */
+	public function getIterator() {
+		return parent::getIterator();
+	}
+
+	/**
+	 * Hook called when a permission is saved
+	 * 
+	 * #pw-hooker
+	 * 
+	 * @param Page $page Page that was saved
+	 * @param array $changes Array of changed field names
+	 * @param array $values Array of changed field values indexed by name (when enabled)
+	 * @throws WireException
+	 * 
+	 */
+
 	public function ___saved(Page $page, array $changes = array(), $values = array()) {
 		$this->wire('cache')->delete(self::cacheName);
 		parent::___saved($page, $changes, $values);
 	}
 
+	/**
+	 * Hook called when a permission is deleted
+	 * 
+	 * #pw-hooker
+	 * 
+	 * @param Page $page Page that was deleted
+	 * @throws WireException
+	 * 
+	 */
 	public function ___deleted(Page $page) {
 		$this->wire('cache')->delete(self::cacheName);
 		parent::___deleted($page);

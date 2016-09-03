@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Edit Link Process
@@ -9,10 +9,7 @@
  * For more details about how Process modules work, please see: 
  * /wire/core/Process.php 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property string $relOptions
@@ -44,6 +41,14 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 	const urlTypeRelativeAll = 2; 
 	
 	protected $startLabel = '';
+
+	/**
+	 * Language ID
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $langID = 0;
 	
 	public static function getDefaultSettings() {
 		return array(
@@ -65,24 +70,26 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 	}
 
 	public function init() {
+		
 		$this->startLabel = $this->_('Choose page'); 
 		$this->modules->get("ProcessPageList"); 	
 		$id = (int) $this->input->get->id; 
+		$this->langID = (int) $this->input->get->lang;
 		if($id) $this->page = $this->pages->get($id); 
 		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
-		if(!$this->page) $this->page = new NullPage();
+		if(!$this->page) $this->page = $this->wire('pages')->newNullPage();
 
 		//$target = $this->sanitizer->name($this->input->get->target); 
 		//$this->config->js('ProcessPageEditLinkTarget', $target); 
 
 		$this->config->js('ProcessPageEditLink', array(
 			'selectStartLabel' => $this->startLabel, 
-			'langID' => ($this->input->get->lang ? (int) $this->input->get->lang : 0),
+			'langID' => $this->langID, 
 			'pageID' => $id,
 			'pageUrl' => $this->page->url,
 			'pageName' => $this->page->name, 
 			'rootParentUrl' => $this->page->rootParent->url,
-			'slashUrls' => $this->page->template->slashUrls,
+			'slashUrls' => $this->page->template ? $this->page->template->slashUrls : 1,
 			'urlType' => $this->urlType,
 			'extLinkRel' => $this->extLinkRel, 
 			'extLinkTarget' => $this->extLinkTarget, 
@@ -96,9 +103,9 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 	
 		if($this->wire('input')->get('href')) {
 			$currentValue = $this->wire('sanitizer')->url($this->wire('input')->get('href'), array(
-				'stripQuotes' => false, 
-				'allowIDN' => true, 
-			)); 
+				'stripQuotes' => false,
+				'allowIDN' => true,
+			));
 		} else {
 			$currentValue = '';
 		}
@@ -109,7 +116,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		
 		$this->wire('modules')->get('JqueryWireTabs'); 
 		
-		$fieldset = new InputfieldWrapper();
+		$fieldset = $this->wire(new InputfieldWrapper());
 		$fieldset->attr('title', $this->_('Link')); 
 		$fieldset->addClass('WireTab');
 		$form->add($fieldset); 
@@ -125,6 +132,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		} else {
 			$field->searchFields = 'name title';
 		}
+		if($this->langID) $field->lang_id = $this->langID;
 		$field->maxSelectedItems = 1; 
 		$field->useList = false; 
 		$field->allowAnyValue = true; 
@@ -173,7 +181,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 		$fieldset->append($this->getFilesField()); 
 		
-		$fieldset = new InputfieldWrapper();
+		$fieldset = $this->wire(new InputfieldWrapper());
 		$fieldset->attr('title', $this->_('Attributes'));
 		$fieldset->attr('id', 'link_attributes'); 
 		$fieldset->addClass('WireTab'); 
@@ -285,15 +293,50 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		return wireEncodeJSON($files);
 	}
 
+	/**
+	 * Get array of info about files attached to given Page
+	 *
+	 * @param Page $page
+	 * @return array Associative array of "/url/to/file.pdf" => "Field label: basename"
+	 *
+	 */
 	protected function getFiles() {
 		$files = array();
-		if($this->page->id) foreach($this->page->fields as $f) {
-			if(!$f->type instanceof FieldtypeFile) continue;
-			foreach($this->page->get($f->name) as $file) {
-				$files[$file->url] = $f->getLabel() . ': ' . $file->basename; 
-			}
+		$page = $this->page;
+		// As the link generator might be called in a repeater, we need to find the containing page		
+		$n = 0;
+		while(strpos($page->className(), 'Repeater') !== false && ++$n < 10) {
+			$page = $page->getForPage();
+		}
+		if($page->id) {
+			$files = $this->getFilesPage($page);
 		}
 		asort($files); 
+		return $files;
+	}
+
+	/**
+	 * Get array of info about files attached to given Page, including any repeater items
+	 * 
+	 * @param Page $page
+	 * @return array Associative array of "/url/to/file.pdf" => "Field label: basename"
+	 * 
+	 */
+	protected function getFilesPage(Page $page, $prefix = '') {
+		$files = array();
+		foreach($page->template->fieldgroup as $field) {
+			/** @var Fieldtype $type */
+			$type = $field->type;
+			if($type instanceof FieldtypeFile) {
+				foreach($page->get($field->name) as $file) {
+					$files[$file->url] = $prefix . $field->getLabel() . ': ' . $file->basename;
+				}
+			} else if(strpos($type->className(), 'FieldtypeRepeater') !== false) {
+				foreach($page->get($field->name) as $repeaterPage){
+					$files = array_merge($this->getFilesPage($repeaterPage, $field->getLabel() . ': '), $files);
+				}
+			} 
+		}
 		return $files;
 	}
 
@@ -314,31 +357,31 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 	}
 	
-	public static function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 	
 		$data = array_merge(self::getDefaultSettings(), $data); 
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 		
-		$fieldset = wire('modules')->get('InputfieldFieldset'); 
-		$fieldset->label = __('Attribute options');
-		$fieldset->description = __('Enter one attribute value per line. The user will be able to select these as options when adding links. To make an option selected by default (for new links), precede it with a plus "+".');
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset'); 
+		$fieldset->label = $this->_('Attribute options');
+		$fieldset->description = $this->_('Enter one attribute value per line. The user will be able to select these as options when adding links. To make an option selected by default (for new links), precede it with a plus "+".');
 		$fieldset->icon = 'sliders';
 
-		$f = wire('modules')->get('InputfieldTextarea');
+		$f = $this->wire('modules')->get('InputfieldTextarea');
 		$f->attr('name', 'classOptions');
 		$f->label = 'class';
 		$f->attr('value', $data['classOptions']);
 		$f->columnWidth = 34; 
 		$fieldset->add($f);
 
-		$f = wire('modules')->get('InputfieldTextarea');
+		$f = $this->wire('modules')->get('InputfieldTextarea');
 		$f->attr('name', 'relOptions');
 		$f->label = 'rel';
 		$f->attr('value', $data['relOptions']);
 		$f->columnWidth = 33; 
 		$fieldset->add($f);
 
-		$f = wire('modules')->get('InputfieldTextarea');
+		$f = $this->wire('modules')->get('InputfieldTextarea');
 		$f->attr('name', 'targetOptions');
 		$f->label = 'target';
 		$f->attr('value', $data['targetOptions']);
@@ -346,14 +389,14 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		$fieldset->add($f);
 		$inputfields->add($fieldset); 
 		
-		$fieldset = wire('modules')->get('InputfieldFieldset');
-		$fieldset->label = __('External link attributes'); 
-		$fieldset->description = __('Specify the default selected attributed that will be automatically populated when an external link is detected.');
-		$fieldset->description .= ' ' . __('If used, the value must be one you have predefined above.'); 
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
+		$fieldset->label = $this->_('External link attributes'); 
+		$fieldset->description = $this->_('Specify the default selected attributed that will be automatically populated when an external link is detected.');
+		$fieldset->description .= ' ' . $this->_('If used, the value must be one you have predefined above.'); 
 		$fieldset->icon = 'external-link';
 		$fieldset->collapsed = Inputfield::collapsedBlank;
 
-		$f = wire('modules')->get('InputfieldName');
+		$f = $this->wire('modules')->get('InputfieldName');
 		$f->attr('name', 'extLinkClass');
 		$f->label = 'class';
 		$f->attr('value', $data['extLinkClass']);
@@ -361,33 +404,33 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		$f->columnWidth = 34;
 		$fieldset->add($f);
 
-		$f = wire('modules')->get('InputfieldName');
+		$f = $this->wire('modules')->get('InputfieldName');
 		$f->attr('name', 'extLinkRel');
-		$f->notes = __('Example: Specifying **nofollow** would make external links default to be not followed by search engines.');
+		$f->notes = $this->_('Example: Specifying **nofollow** would make external links default to be not followed by search engines.');
 		$f->label = 'rel';
 		$f->required = false; 
 		$f->attr('value', $data['extLinkRel']);
 		$f->columnWidth = 33; 
 		$fieldset->add($f);
 
-		$f = wire('modules')->get('InputfieldName');
+		$f = $this->wire('modules')->get('InputfieldName');
 		$f->attr('name', 'extLinkTarget');
 		$f->label = 'target';
-		$f->notes = __('Example: Specifying **_blank** would make external links default to open in a new window.'); 
+		$f->notes = $this->_('Example: Specifying **_blank** would make external links default to open in a new window.'); 
 		$f->attr('value', $data['extLinkTarget']);
 		$f->required = false; 
 		$f->columnWidth = 33; 
 		$fieldset->add($f);
 		$inputfields->add($fieldset); 
 		
-		$f = wire('modules')->get('InputfieldRadios'); 
+		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', 'urlType'); 
-		$f->label = __('URL type for page links'); 
-		$f->addOption(self::urlTypeAbsolute, __('Absolute (default)')); 
-		$f->addOption(self::urlTypeRelativeBranch, __('Relative URLs in the same branches only') . '*'); 
-		$f->addOption(self::urlTypeRelativeAll, __('Relative URLs always') . '*'); 
+		$f->label = $this->_('URL type for page links'); 
+		$f->addOption(self::urlTypeAbsolute, $this->_('Absolute (default)')); 
+		$f->addOption(self::urlTypeRelativeBranch, $this->_('Relative URLs in the same branches only') . '*'); 
+		$f->addOption(self::urlTypeRelativeAll, $this->_('Relative URLs always') . '*'); 
 		$f->attr('value', isset($data['urlType']) ? $data['urlType'] : self::urlTypeAbsolute); 
-		$f->notes = __('*Currently experimental'); 
+		$f->notes = $this->_('*Currently experimental'); 
 		$f->collapsed = Inputfield::collapsedYes;
 		$inputfields->add($f); 
 		

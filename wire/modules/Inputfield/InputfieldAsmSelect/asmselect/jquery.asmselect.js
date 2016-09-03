@@ -1,10 +1,11 @@
 /*
  * Alternate Select Multiple (asmSelect) 1.3 - jQuery Plugin
- * /projects/asmselect/
+ * http://www.ryancramer.com/projects/asmselect/
  * 
- * Copyright (c) 2009-2015 by Ryan Cramer - 
+ * Copyright (c) 2009-2014 by Ryan Cramer - http://www.ryancramer.com
  * 
- * Licensed under the MIT license
+ * Licensed under the MIT license. 
+ *
  *
  */
 (function($) {
@@ -26,8 +27,10 @@
 			deletedOpacity: 0.5,					// opacity of deleted item, set to 1.0 to disable opacity adjustment (applicable only if hideDeleted=true)
 			deletedPrepend: '-', 					// Deleted item values are prepended with this character in the form submission (applicable only if hideDeleted=true)
 
-			sortLabel: '<span class="ui-icon ui-icon-arrowthick-2-n-s"></span>', // sortable handle/icon
-			removeLabel: '<span class="ui-icon ui-icon-trash">remove</span>', // Text used in the "remove" link
+			// sortLabel: '<span class="ui-icon ui-icon-arrowthick-2-n-s"></span>', // sortable handle/icon
+			sortLabel: '<span class="asmIcon asmIconSort">&#8597;</span>', // sortable handle/icon
+			// removeLabel: '<span class="ui-icon ui-icon-trash">remove</span>', // Text used in the "remove" link
+			removeLabel: '<span class="asmIcon asmIconRemove">&times;</span>', // Text used in the "remove" link
 			highlightAddedLabel: 'Added: ',				// Text that precedes highlight of added item
 			highlightRemovedLabel: 'Removed: ',			// Text that precedes highlight of removed item
 
@@ -49,7 +52,8 @@
 			editLink: '', 						// Optional URL options can link to with tag {value} replaced by option value, i.e. /path/to/page/edit?id={$value}
 			editLabel: '<span class="ui-icon ui-icon-extlink"></span>', // Text used in the "edit" link (if editLink is populated)
 			editLinkOnlySelected: true, 				// When true, edit link only appears for items that were already selected
-			editLinkModal: true					// Whether the edit link (if used) should be modal
+			editLinkModal: true,					// Whether the edit link (if used) should be modal or "longclick" for longclick modal only
+			editLinkButtonSelector: 'form button.ui-button:visible' // button selector for finding buttons that should become modal window buttons
 
 			};
 
@@ -106,6 +110,10 @@
 				if(msie > 0 && msie < 8) $ol.css('display', 'inline-block'); // Thanks Matthew Hutton
 
 				$original.trigger('init'); 
+			
+				if(options.editLinkModal === 'longclick') {
+					$ol.on('longclick', 'a.asmEditLinkModalLongclick', clickEditLink);
+				}
 			}
 
 			function makeSortable() {
@@ -117,6 +125,7 @@
 					items: 'li.' + options.listItemClass,
 					// handle: '.' + options.listItemLabelClass,
 					axis: 'y',
+					cancel: 'a.asmEditLinkModalLongclick',
 					update: function(e, ui) {
 
 						var updatedOptionId;
@@ -316,8 +325,12 @@
 					var $editLink = $("<a></a>")
 						.html($O.html())
 						.attr('href', options.editLink.replace(/\{value\}/, $O.val()))
-						.append(options.editLabel)
-						.click(clickEditLink);
+						.append(options.editLabel);
+					if(options.editLinkModal === "longclick") {
+						$editLink.addClass('asmEditLinkModalLongclick');
+					} else if(options.editLinkModal) {
+						$editLink.click(clickEditLink);
+					}
 					
 					$itemLabel.addClass(options.editClass).append($editLink);
 					
@@ -325,9 +338,13 @@
 						var $editLink2 = $("<a></a>")
 							.html($O.attr('data-desc'))
 							.attr('href', $editLink.attr('href'))
-							.append(options.editLabel)
-							.click(clickEditLink);
+							.append(options.editLabel);
 						$itemDesc.addClass(options.editClass).append($editLink2);
+						if(options.editLinkModal === "longclick") {
+							$editLink2.addClass('asmEditLinkModalLongclick');
+						} else if(options.editLinkModal) {
+							$editLink2.click(clickEditLink);
+						}
 					}
 
 				} else {
@@ -522,7 +539,7 @@
 			function clickEditLink(e) {
 
 				if(!options.editLinkModal) return true; 
-
+				
 				var $asmItem = $(this).parents('.' + options.listItemClass); 
 				var href = $(this).attr('href'); 
 				var $iframe = pwModalWindow(href, {}, 'medium'); 
@@ -533,7 +550,7 @@
 					var buttons = [];
 					var buttonCnt = 0;
 
-					$icontents.find('form button.ui-button:visible').each(function(n) {
+					$icontents.find(options.editLinkButtonSelector).each(function(n) {
 
 						var $button = $(this);
 						var label = $button.text();

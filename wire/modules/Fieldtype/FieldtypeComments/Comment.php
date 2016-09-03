@@ -1,15 +1,31 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Fieldtype Comments > Comment
  *
  * Class that contains an individual comment.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @property int $id
+ * @property int $parent_id 
+ * @property string $text 
+ * @property int $sort 
+ * @property int $status 
+ * @property int $flags 
+ * @property int $created 
+ * @property string $email 
+ * @property string $cite 
+ * @property string $website 
+ * @property string $ip 
+ * @property string $user_agent 
+ * @property int $created_users_id 
+ * @property string $code 
+ * @property string $subcode 
+ * @property int $upvotes 
+ * @property int $downvotes 
+ * @property int $stars 
  *
  */
 
@@ -124,7 +140,7 @@ class Comment extends WireData {
 		$this->set('code', ''); // approval code
 		$this->set('subcode', ''); // subscriber code (for later user modifications to comment)
 		$this->set('upvotes', 0); 
-		$this->set('downvotes', 0); 
+		$this->set('downvotes', 0);
 		$this->set('stars', 0);
 	}
 
@@ -199,7 +215,7 @@ class Comment extends WireData {
 			else if($key == 'email') $value = $this->sanitizer->email($value); 
 			else if($key == 'ip') $value = filter_var($value, FILTER_VALIDATE_IP); 
 			else if($key == 'user_agent') $value = str_replace(array("\r", "\n", "\t"), ' ', substr(strip_tags($value), 0, 255)); 
-			else if($key == 'website') $value = wire('sanitizer')->url($value, array('allowRelative' => false, 'allowQuerystring' => false)); 
+			else if($key == 'website') $value = $this->wire('sanitizer')->url($value, array('allowRelative' => false, 'allowQuerystring' => false)); 
 			else if($key == 'upvotes' || $key == 'downvotes') $value = (int) $value; 
 
 		// save the state so that modules can identify when a comment that was identified as spam 
@@ -207,8 +223,9 @@ class Comment extends WireData {
 		if($key == 'status' && $this->loaded) {
 			$this->prevStatus = $this->status;
 		}
+
 		if($key == 'stars') {
-			$value = (int) $value; 
+			$value = (int) $value;
 			if($value < 1) $value = 0;
 			if($value > 5) $value = 5; 
 		}
@@ -341,6 +358,21 @@ class Comment extends WireData {
 			if($comment->parent_id == $id) $children->add($comment);
 		}
 		return $children;
+	}
+
+	/**
+	 * Render stars markup
+	 *
+	 * @param array $options See CommentArray::renderStars for $options
+	 * @return string
+	 *
+	 */
+	public function renderStars(array $options = array()) {
+		$field = $this->getField();
+		$comments = $this->getPage()->get($field->name);
+		if(!isset($options['stars'])) $options['stars'] = $this->stars;
+		if(!isset($options['blank'])) $options['blank'] = false;
+		return $comments->renderStars(false, $options);
 	}
 
 }

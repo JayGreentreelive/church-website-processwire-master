@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 /**
  * Temporary wrapper to mysqli Database class for mysqli => PDO transition
  * 
@@ -8,8 +8,8 @@
  * actually instantiating mysqli (and forming a mysql connection) until the $db
  * variable is called upon to do something.
  * 
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  * 
  */
 

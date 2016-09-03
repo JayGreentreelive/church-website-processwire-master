@@ -1,9 +1,9 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire 2.x Admin Markup Template
  *
- * Copyright 2015 by Ryan Cramer
+ * Copyright 2012 by Ryan Cramer
  *
  *
  */
@@ -19,7 +19,7 @@ $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-
 $config->scripts->append($config->urls->adminTemplates . "scripts/inputfields.js?v=5"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=4"); 
 
-$browserTitle = wire('processBrowserTitle'); 
+$browserTitle = $this->wire('processBrowserTitle'); 
 if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FILE__) . ' &bull; ProcessWire';
 
 /*
@@ -110,7 +110,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 			<?php if(!$user->isGuest()): ?>
 
 			<ul id='breadcrumb' class='nav'><?php
-				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
+				foreach($this->wire('breadcrumbs') as $breadcrumb) {
 					$title = __($breadcrumb->title, __FILE__); 
 					echo "\n\t\t\t\t<li><a href='{$breadcrumb->url}'>{$title}</a> &gt;</li>";
 				}

@@ -1,23 +1,16 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
- * ProcessWire WireDateTime 
+ * ProcessWire Date/Time Tools ($datetime API variable)
  * 
- * Provides helpers for working with dates/times and conversion between formats.
+ * #pw-summary The $datetime API variable provides helpers for working with dates/times and conversion between formats.
  * 
- * This class can be used outside of ProcessWire (minus relative date support).
- *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
- * @todo in PW 3.0 move wireDate() and wireRelativeTimeStr() function implementation into this class. 
- *
  */
 
-class WireDateTime {
+class WireDateTime extends Wire {
 	
 	/**
 	 * Date formats in date() format
@@ -77,7 +70,7 @@ class WireDateTime {
 		'H:i',		// 17:01 (with leading zeros)
 		'H:i:s',	// 17:01:01 (with leading zeros)
 
-		// Relative (see wireDate in /wire/core/Functions.php)
+		// Relative 
 		'!relative',
 		'!relative-',
 		'!rel',
@@ -130,6 +123,16 @@ class WireDateTime {
 
 	/**
 	 * Return all predefined PHP date() formats for use as dates
+	 * 
+	 * ~~~~~
+	 * // output all date formats
+	 * $formats = $datetime->getDateFormats();
+	 * echo "<pre>" . print_r($formats, true) . "</pre>";
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
+	 * 
+	 * @return array Returns an array of strings containing recognized date formats
 	 *
 	 */
 	public function getDateFormats() { return self::$dateFormats; }
@@ -137,6 +140,16 @@ class WireDateTime {
 
 	/**
 	 * Return all predefined PHP date() formats for use as times
+	 *
+	 * ~~~~~
+	 * // output all time formats
+	 * $formats = $datetime->getTimeFormats();
+	 * echo "<pre>" . print_r($formats, true) . "</pre>";
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
+	 *
+	 * @return array Returns an array of strings containing recognized time formats
 	 *
 	 */
 	public function getTimeFormats() { return self::$timeFormats; }
@@ -147,7 +160,7 @@ class WireDateTime {
 	 *
 	 * @param string $str Date/time string
 	 * @param string $format Format of the date/time string in PHP date syntax
-	 * @return int
+	 * @return int Unix timestamp
 	 *
 	 */
 	public function stringToTimestamp($str, $format) {
@@ -166,11 +179,7 @@ class WireDateTime {
 			$a = date_parse_from_format($format, $str);
 			if(isset($a['warnings']) && count($a['warnings'])) {
 				foreach($a['warnings'] as $warning) {
-					if(function_exists('wire')) {
-						wire()->warning($warning . " (value='$str', format='$format')");
-					} else {
-						// some other warning system, outside of ProcessWire usage
-					}
+					$this->warning($warning . " (value='$str', format='$format')");
 				}
 			}
 			if($a['year'] && $a['month'] && $a['day']) {
@@ -235,9 +244,20 @@ class WireDateTime {
 
 	/**
 	 * Format a date with the given PHP date() or PHP strftime() format
+	 * 
+	 * This method will accept either [PHP date](http://php.net/manual/en/function.date.php) 
+	 * or [PHP strftime](http://php.net/manual/en/function.strftime.php) compatible formats, 
+	 * determine what kind it is, and return the timestamp formatted with it. 
+	 * 
+	 * ~~~~~~
+	 * // Output the current date/time in ISO-8601 like format
+	 * echo $datetime->formatDate(time(), 'Y-m-d H:i a'); 
+	 * ~~~~~~
+	 * 
+	 * #pw-internal
 	 *
-	 * @param int $value Unix timestamp of date
-	 * @param string $format date() or strftime() format string to use for formatting
+	 * @param int $value Unix timestamp of date/time
+	 * @param string $format PHP date() or strftime() format string to use for formatting
 	 * @return string Formatted date string
 	 *
 	 */
@@ -248,13 +268,9 @@ class WireDateTime {
 		$relativeStr = '';
 
 		if(strpos($format, '!') !== false) {
-			if(function_exists('wireDate')) {
-				if(preg_match('/([!][relativ]+-?)/', $format, $matches)) {
-					$relativeStr = wireDate(ltrim($matches[1], '!'), $value);
-					$format = str_replace($matches[1], '///', $format);
-				}
-			} else {
-				// usage outside of ProcessWire, relative dates not supported
+			if(preg_match('/([!][relativ]+-?)/', $format, $matches)) {
+				$relativeStr = $this->date(ltrim($matches[1], '!'), $value);
+				$format = str_replace($matches[1], '///', $format);
 			}
 		}
 
@@ -271,12 +287,8 @@ class WireDateTime {
 			$value = strftime($format, $value);
 			if($TRIM0) $value = str_replace(array('TRIM00', 'TRIM0'), '', $value);
 
-		} else if(function_exists('wireDate')) {
-			// use ProcessWire's wireDate()
-			$value = wireDate($format, $value);
 		} else {
-			// usage outside of ProcessWire
-			$value = date($format, $value);
+			$value = $this->date($format, $value);
 		}
 
 		if(strlen($relativeStr)) $value = str_replace('///', $relativeStr, $value);
@@ -285,7 +297,9 @@ class WireDateTime {
 	}
 
 	/**
-	 * Given a date() format, convert it to either 'js', 'strftime' or 'regex' format
+	 * Given a PHP date() format, convert it to either 'js', 'strftime' or 'regex' format
+	 * 
+	 * #pw-advanced
 	 *
 	 * @param string $format PHP date() format
 	 * @param string $type New format to convert to: either 'js', 'strftime', or 'regex'
@@ -339,6 +353,259 @@ class WireDateTime {
 
 		return $newFormat;
 	}
-	
-	
+
+
+	/**
+	 * Format a date, using PHP date(), strftime() or other special strings (see arguments).
+	 *
+	 * This is designed to work the same way as PHP's `date()` but be able to accept any common format
+	 * used in ProcessWire. This is helpful for reducing code in places where you might have logic
+	 * determining when to use `date()`, `strftime()`, `wireRelativeTimeStr()` or some other date 
+	 * formatting function. 
+	 * 
+	 * ~~~~~~
+	 * // Output the current date/time in relative format
+	 * echo $date->formatDate('relative');
+	 * ~~~~~~
+	 *
+	 * @param string|int $format Use one of the following:
+	 *  - [PHP date](http://php.net/manual/en/function.date.php) format
+	 *  - [PHP strftime](http://php.net/manual/en/function.strftime.php) format (detected by presence of a '%' somewhere in it)
+	 *  - `relative` for a relative date/time string.
+	 *  - `relative-` for a relative date/time string with no tense.
+	 *  - `rel` for an abbreviated relative date/time string.
+	 *  - `rel-` for an abbreviated relative date/time string with no tense.
+	 *  - `r` for an extra-abbreviated relative date/time string.
+	 *  - `r-` for an extra-abbreviated relative date/time string with no tense.
+	 *  - `ts` makes it return a unix timestamp
+	 *  - blank string makes it use the system date format ($config->dateFormat)
+	 *  - If given an integer and no second argument specified, it is assumed to be the second ($ts) argument.
+	 * @param int|string|null $ts Optionally specify the date/time stamp or strtotime() compatible string. If not specified, current time is used.
+	 * @return string|bool Formatted date/time, or boolean false on failure
+	 *
+	 */
+	function date($format = '', $ts = null) {
+		if(is_null($ts)) {
+			// ts not specified, or it was specified in $format
+			if(ctype_digit("$format")) {
+				// ts specified in format
+				$ts = (int) $format;
+				$format = '';
+			} else {
+				// use current timestamp
+				$ts = time();
+			}
+		} else if(is_string($ts) && ctype_digit("$ts")) {
+			// ts is a digit string, convert to integer
+			$ts = (int) $ts;
+		} else if(is_string($ts)) {
+			// ts is a non-integer string, we assume to be a strtotime() compatible formatted date
+			$ts = strtotime($ts);
+		}
+		if($format == '') $format = $this->wire('config')->dateFormat;
+		if($format == 'relative') $value = $this->relativeTimeStr($ts);
+			else if($format == 'relative-') $value = $this->relativeTimeStr($ts, false, false);
+			else if($format == 'rel') $value = $this->relativeTimeStr($ts, true);
+			else if($format == 'rel-') $value = $this->relativeTimeStr($ts, true, false);
+			else if($format == 'r') $value = $this->relativeTimeStr($ts, 1);
+			else if($format == 'r-') $value = $this->relativeTimeStr($ts, 1, false);
+			else if($format == 'ts') $value = $ts;
+			else if(strpos($format, '%') !== false) $value = strftime($format, $ts);
+			else $value = date($format, $ts);
+		return $value;
+	}
+
+
+
+	/**
+	 * Given a unix timestamp (or date string), returns a formatted string indicating the time relative to now
+	 *
+	 * For example: 
+	 * 
+	 * - 2 years ago
+	 * - 3 months ago
+	 * - 1 day ago
+	 * - 30 seconds ago
+	 * - Just now
+	 * - 1 day from now
+	 * - 5 months from now
+	 * - 3 years from now
+	 * 
+	 * This method also supports multi-language and will output in the current user's language, so long as the 
+	 * phrases in /wire/core/WireDateTime.php are translated in the language pack. 
+	 * 
+	 * @param int|string $ts Unix timestamp or date string
+	 * @param bool|int|array $abbreviate Whether to use abbreviations for shorter strings.
+	 *  - Specify boolean TRUE for abbreviations (abbreviated where common, not always different from non-abbreviated)
+	 *  - Specify integer 1 for extra short abbreviations (all terms abbreviated into shortest possible string)
+	 *  - Specify boolean FALSE or omit for no abbreviations.
+	 *  - Specify associative array of key=value pairs of terms to use for abbreviations. The possible keys are:
+	 * 	  just now, ago, from now, never, second, minute, hour, day, week, month, year, decade, seconds, minutes, 
+	 *    hours, days, weeks, months, years, decades
+	 * @param bool $useTense Whether to append a tense like "ago" or "from now".
+	 *  - May be ok to disable in situations where all times are assumed in future or past.
+	 *  - In abbreviate=1 (shortest) mode, this removes the leading "+" or "-" from the string.
+	 * @return string Formatted relative time string
+	 *
+	 */
+	public function relativeTimeStr($ts, $abbreviate = false, $useTense = true) {
+		// Originally based upon: <http://www.php.net/manual/en/function.time.php#89415>
+
+		if(empty($ts)) {
+			if(is_array($abbreviate) && isset($abbreviate['never'])) return $abbreviate['never'];
+			return $this->_('Never');
+		}
+
+		$justNow = $this->_('just now');
+		$ago = $this->_('ago');
+		$prependAgo = '';
+		$fromNow = $this->_('from now');
+		$prependFromNow = '';
+		$space = ' ';
+
+		if($abbreviate === 1) {
+			// extra short abbreviations
+
+			$justNow = $this->_('now');
+			$ago = '';
+			$prependAgo = '-';
+			$fromNow = '';
+			$prependFromNow = '+';
+			$space = '';
+
+			$periodsSingular = array(
+				$this->_("s"),
+				$this->_("m"),
+				$this->_("hr"),
+				$this->_("d"),
+				$this->_("wk"),
+				$this->_("mon"),
+				$this->_("yr"),
+				$this->_("decade")
+			);
+
+			$periodsPlural = array(
+				$this->_("s"),
+				$this->_("m"),
+				$this->_("hr"),
+				$this->_("d"),
+				$this->_("wks"),
+				$this->_("mths"),
+				$this->_("yrs"),
+				$this->_("decades")
+			);
+
+		} else if($abbreviate === true) {
+			// standard abbreviations
+
+			$justNow = $this->_('now');
+			$fromNow = '';
+			$prependFromNow = $this->_('in') . ' ';
+
+			$periodsSingular = array(
+				$this->_("sec"),
+				$this->_("min"),
+				$this->_("hr"),
+				$this->_("day"),
+				$this->_("week"),
+				$this->_("month"),
+				$this->_("year"),
+				$this->_("decade")
+			);
+
+			$periodsPlural = array(
+				$this->_("secs"),
+				$this->_("mins"),
+				$this->_("hrs"),
+				$this->_("days"),
+				$this->_("weeks"),
+				$this->_("months"),
+				$this->_("years"),
+				$this->_("decades")
+			);
+
+		} else {
+			// no abbreviations
+
+			$periodsSingular = array(
+				$this->_("second"),
+				$this->_("minute"),
+				$this->_("hour"),
+				$this->_("day"),
+				$this->_("week"),
+				$this->_("month"),
+				$this->_("year"),
+				$this->_("decade")
+			);
+
+			$periodsPlural = array(
+				$this->_("seconds"),
+				$this->_("minutes"),
+				$this->_("hours"),
+				$this->_("days"),
+				$this->_("weeks"),
+				$this->_("months"),
+				$this->_("years"),
+				$this->_("decades")
+			);
+
+			if(is_array($abbreviate)) {
+				// possible user specified abbreviations for replacements
+				$keys1 = array('second', 'minute', 'hour',  'day', 'week', 'month', 'year', 'decade');
+				$keys2 = array('seconds', 'minutes', 'hours',  'days', 'weeks', 'months', 'years', 'decades');
+				foreach($keys1 as $key => $term) {
+					if(isset($abbreviate[$term])) $periodsSingular[$key] = $abbreviate[$term];
+				}
+				foreach($keys2 as $key => $term) {
+					if(isset($abbreviate[$term])) $periodsPlural[$key] = $abbreviate[$term];
+				}
+				if(isset($abbreviate['just now'])) $justNow = $abbreviate['just now'];
+				if(isset($abbreviate['from now'])) $fromNow = $abbreviate['from now'];
+				if(isset($abbreviate['ago'])) $ago = $abbreviate['ago'];
+			}
+		}
+
+
+		$lengths = array("60","60","24","7","4.35","12","10");
+		$now = time();
+		if(!ctype_digit("$ts")) $ts = strtotime($ts);
+		if(empty($ts)) return "";
+
+		// is it future date or past date
+		if($now > $ts) {
+			$difference = $now - $ts;
+			$tense = $ago;
+			$prepend = $prependAgo;
+		} else {
+			$difference = $ts - $now;
+			$tense = $fromNow;
+			$prepend = $prependFromNow;
+		}
+
+		if(!$useTense) {
+			$prepend = '';
+			$tense = '';
+		}
+
+		for($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
+			$difference /= $lengths[$j];
+		}
+
+		$difference = round($difference);
+		if(!$difference) return $justNow;
+
+		$periods = $difference != 1 ? $periodsPlural : $periodsSingular;
+		$period = $periods[$j];
+
+		// return sprintf('%s%d%s%s %s', $prepend, (int) $difference, $space, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
+		$quantity = $prepend . $difference . $space;
+		$format = $this->_('Q P T'); // Relative time order: Q=Quantity, P=Period, T=Tense (i.e. 2 Days Ago)
+		$format = str_replace(array('Q', 'P', 'T'), array('{Q}', '{P}', '{T}'), $format);
+		$out = str_replace(array('{Q}', '{P}', '{T}'), array(" $quantity", " $period", " $tense"), $format);
+		if($abbreviate === 1) $out = str_replace(" ", "", $out); // no space when extra-abbreviate is active
+		else if(strpos($out, '  ') !== false) $out = preg_replace('/\s\s+/', ' ', $out);
+		return trim($out);
+	}
+
+
 }

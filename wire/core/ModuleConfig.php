@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Class ModuleConfig
@@ -8,9 +8,8 @@
  * Descending class name should follow the format: [ModuleName]Config and file [ModuleName]Config.php
  * located in the same directory as the module it is configuring. 
  * 
- * ProcessWire 2.x
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  * 
  */
 
@@ -85,7 +84,7 @@ class ModuleConfig extends WireData {
 		foreach($this->getDefaults() as $key => $value) {
 			$this->set($key, $value);
 		}
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 		if(count($this->inputfieldsArray)) {
 			$inputfields->add($this->inputfieldsArray); 
 		}

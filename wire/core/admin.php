@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Controller for ProcessWire Admin
@@ -6,8 +6,19 @@
  * This file is designed for inclusion by /site/templates/admin.php template and all the variables 
  * it references are from your template namespace. 
  *
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 (http://mozilla.org/MPL/2.0/)
+ * Copyright 2016 by Ryan Cramer
+ * 
+ * @var Config $config
+ * @var User $user
+ * @var Modules $modules
+ * @var Pages $pages
+ * @var Page $page
+ * @var ProcessWire $wire
+ * @var WireInput $input
+ * @var Sanitizer $sanitizer
+ * @var Session $session
+ * @var Notices $notices
+ * 
  *
  */
 
@@ -17,6 +28,8 @@ header("X-Frame-Options: SAMEORIGIN");
 
 /**
  * Ensures a modal GET variable is retained through redirects, when appropriate
+ * 
+ * @param HookEvent $event
  *
  */
 function _hookSessionRedirectModal(HookEvent $event) {
@@ -30,10 +43,10 @@ function _hookSessionRedirectModal(HookEvent $event) {
 /**
  * Check if the current HTTP host is recognized and generate error if not
  * 
- * @param $config
+ * @param Config $config
  * 
  */
-function _checkForHttpHostError($config) {
+function _checkForHttpHostError(Config $config) {
 
 	$valid = false;
 	$httpHost = strtolower($config->httpHost); 
@@ -48,7 +61,7 @@ function _checkForHttpHostError($config) {
 		__('Unrecognized HTTP host:') . "'"  . 
 		htmlentities($_SERVER['HTTP_HOST'], ENT_QUOTES, 'UTF-8') . "' - " . 
 		__('Please update your $config->httpHosts setting in /site/config.php') . " - " . 
-		"<a target='_blank' href='https://processwire.com/api/variables/config/#httphosts'>" . __('read more') . "</a>", 
+		"<a target='_blank' href='http://processwire.com/api/variables/config/#httphosts'>" . __('read more') . "</a>", 
 		Notice::allowMarkup
 		); 
 }
@@ -64,11 +77,10 @@ $modules->get("JqueryUI");
 $pages->setOutputFormatting(false); 
 
 // setup breadcrumbs to current page, and the Process may modify, add to or replace them as needed
-$breadcrumbs = new Breadcrumbs();
+$breadcrumbs = $wire->wire('breadcrumbs', new Breadcrumbs()); 
 foreach($page->parents() as $p) {
 	if($p->id > 1) $breadcrumbs->add(new Breadcrumb($p->url, $p->get("title|name"))); 
 }
-Wire::setFuel('breadcrumbs', $breadcrumbs); 
 $controller = null;
 $content = '';
 
@@ -89,8 +101,15 @@ if($page->process && $page->process != 'ProcessPageView') {
 		$controller = new ProcessController(); 
 		$controller->setProcessName($page->process); 
 		$initFile = $config->paths->adminTemplates . 'init.php'; 
-		if(is_file($initFile)) include($initFile); 
-		if($input->get->modal) $session->addHookBefore('redirect', null, '_hookSessionRedirectModal'); 
+		if(is_file($initFile)) {
+			if(strpos($initFile, $config->paths->site) === 0) {
+				// admin themes in /site/modules/ may be compiled
+				$initFile = $wire->files->compile($initFile);
+			}
+			/** @noinspection PhpIncludeInspection */
+			include($initFile);
+		}
+		if($input->get('modal')) $session->addHookBefore('redirect', null, '_hookSessionRedirectModal'); 
 		$content = $controller->execute();
 
 	} catch(Wire404Exception $e) {
@@ -102,13 +121,14 @@ if($page->process && $page->process != 'ProcessPageView') {
 			$content = $controller->jsonMessage($e->getMessage(), true); 
 
 		} else if($user->isGuest()) {
+			/** @var Process $process */
 			$process = $modules->get("ProcessLogin"); 
 			$content = $process->execute();
 		} else {
 			$wire->error($e->getMessage()); 	
 		}
 
-	} catch(Exception $e) {
+	} catch(\Exception $e) {
 		$msg = $e->getMessage(); 
 		if($config->debug) {
 			$msg = $sanitizer->entities($msg);
@@ -146,7 +166,12 @@ if($controller && $controller->isAjax()) {
 	echo $content; 
 } else {
 	if(!strlen($content)) $content = '<p>' . __('The process returned no content.') . '</p>';
-	require($config->paths->adminTemplates . 'default.php'); 
+	$adminThemeFile = $config->paths->adminTemplates . 'default.php';
+	if(strpos($adminThemeFile, $config->paths->site) === 0) {
+		$adminThemeFile = $wire->files->compile($adminThemeFile);
+	}
+	/** @noinspection PhpIncludeInspection */
+	require($adminThemeFile);
 	$session->removeNotices();
 }
 

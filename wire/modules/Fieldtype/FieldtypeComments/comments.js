@@ -4,15 +4,20 @@
  *
  * @param string name
  * @param string value
- * @param int days
+ * @param int days Specify 0 for session-only cookie
  *
  */
 function CommentFormSetCookie(name, value, days) {
-	var today = new Date();
-	var expire = new Date();
-	if(days == null || days == 0) days = 1;
-	expire.setTime(today.getTime() + 3600000 * 24 * days);
-	document.cookie = name + "=" + escape(value) + ";path=/;expires=" + expire.toGMTString();
+	var cookieValue = name + "=" + escape(value) + ";path=/";
+	if(days == null) days = 0;
+	if(days > 0) {
+		var today = new Date();
+		var expire = new Date();
+		expire.setTime(today.getTime() + 3600000 * 24 * days);
+		document.cookie = cookieValue + ";expires=" + expire.toGMTString();
+	} else {
+		document.cookie = cookieValue; 
+	}
 }
 
 /**
@@ -31,9 +36,9 @@ function CommentFormGetCookie(name) {
 
 /**
  * Handle the 5-star rating system for comments
- * 
+ *
  * @param jQuery $
- * 
+ *
  */
 function CommentFormStars($) {
 
@@ -77,6 +82,7 @@ function CommentFormStars($) {
 		var $input = $parent.prev('input');
 		$input.val(value);
 		setStars($parent, value);
+		$input.change();
 		return false;
 	});
 
@@ -117,7 +123,7 @@ jQuery(document).ready(function($) {
 	$(".CommentFormSubmit button").on('click', function() {
 		var $this = $(this);
 		var $form = $this.closest('form.CommentForm');
-		
+
 		var $wrapStars = $form.find(".CommentFormStarsRequired");
 		if($wrapStars.length) {
 			var stars = parseInt($wrapStars.find("input").val());
@@ -137,7 +143,7 @@ jQuery(document).ready(function($) {
 		if(email.indexOf('|') > -1) email = '';
 		if(website.indexOf('|') > -1) website = '';
 		var cookieValue = cite + '|' + email + '|' + website + '|' + notify;
-		CommentFormSetCookie('CommentForm', cookieValue, 30);
+		CommentFormSetCookie('CommentForm', cookieValue, 0);
 	});
 
 	// populate comment form values if they exist in cookie
@@ -181,5 +187,4 @@ jQuery(document).ready(function($) {
 	if($(".CommentStarsInput").length) {
 		CommentFormStars($);
 	}
-	
 }); 

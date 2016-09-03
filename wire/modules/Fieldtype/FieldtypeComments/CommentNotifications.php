@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class CommentNotifications extends Wire {
 	
@@ -84,7 +84,7 @@ class CommentNotifications extends Wire {
 			'stars' => array(
 				'label' => $this->_x('Stars', 'email-body'),
 				'value' => $comment->stars,
-			), 
+			),
 			'status' => array(
 				'label' => $this->_x('Status', 'email-body'),
 				'value' => $status
@@ -94,8 +94,8 @@ class CommentNotifications extends Wire {
 				'value' => "$actionLabel: $actionURL"
 			), 
 		);
-		
-		if(!$comment->stars) unset($values['stars']); 
+
+		if(!$comment->stars) unset($values['stars']);
 		
 		$values['text'] = array(
 			'label' => $this->_x('Text', 'email-body'),
@@ -134,7 +134,7 @@ class CommentNotifications extends Wire {
 
 		$emails = $this->parseEmails($field->notificationEmail); 	
 		if(count($emails)) {
-			$mail = wireMail();
+			$mail = $this->wire('mail')->new();
 			foreach($emails as $email) $mail->to($email);
 			$mail->subject($subject)->body($body)->bodyHTML($bodyHTML);
 			$fromEmail = $this->getFromEmail();
@@ -359,7 +359,7 @@ class CommentNotifications extends Wire {
 		$query->bindValue(':subcode', $subcode); 
 		$query->execute();
 		$email = '';
-		if($query->rowCount()) list($email) = $query->fetch(PDO::FETCH_NUM); 
+		if($query->rowCount()) list($email) = $query->fetch(\PDO::FETCH_NUM); 
 		if(!strlen($email)) return false;
 	
 		if($all) {
@@ -373,7 +373,7 @@ class CommentNotifications extends Wire {
 		$query->execute();
 		if(!$query->rowCount()) return false;
 		
-		while($row = $query->fetch(PDO::FETCH_NUM)) {
+		while($row = $query->fetch(\PDO::FETCH_NUM)) {
 			list($id, $flags) = $row; 
 			if($enable) {
 				// enable
@@ -427,7 +427,7 @@ class CommentNotifications extends Wire {
 		$body .= "\n\n$footer: $unsubURL";	
 		$bodyHTML .= "<p><a href='$unsubURL'>$footer</a></p>";
 		
-		$mail = wireMail();
+		$mail = $this->wire('mail')->new();
 		$mail->to($email)->subject($subject)->body($body)->bodyHTML($bodyHTML);
 		$fromEmail = $this->getFromEmail();
 		if($fromEmail) $mail->from($fromEmail);
@@ -466,7 +466,7 @@ class CommentNotifications extends Wire {
 		$body .= "\n\n$footer: $confirmURL";
 		$bodyHTML .= "<p><strong><a href='$confirmURL'>$footer</a></strong></p>";
 
-		$mail = wireMail();
+		$mail = $this->wire('mail')->new();
 		$mail->to($email)->subject($subject)->body($body)->bodyHTML($bodyHTML);
 		$fromEmail = $this->getFromEmail();
 		if($fromEmail) $mail->from($fromEmail);

@@ -1,12 +1,9 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Inputfields and processing for Select Options Fieldtype
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -69,7 +66,7 @@ class SelectableOptionConfig extends Wire {
 		if(!is_null($value)) {
 			// _options has been posted
 
-			if($this->manager->useLanguages() && $inputfield->useLanguages) {
+			if($this->manager->useLanguages() && $inputfield->getSetting('useLanguages')) {
 				// multi-language
 
 				$valuesPerLanguage = array();

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire CommentFormInterface and CommentForm
@@ -8,10 +8,7 @@
  * Use of this is optional, and it's primarily here for example purposes. 
  * You can make your own markup/output for the form directly in your own templates. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -121,6 +118,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		
 		// When a comment is saved to a page, avoid updating the modified time/user
 		'quietSave' => false,
+
 		);
 
 
@@ -149,7 +147,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$this->options['labels']['email'] = $this->_('Your E-Mail'); 
 		$this->options['labels']['website'] = $this->_('Your Website URL');
 		$this->options['labels']['stars'] = ''; // i.e. "Your Rating"
-		$this->options['labels']['starsRequired'] = $this->_('Please choose a star rating'); 
+		$this->options['labels']['starsRequired'] = $this->_('Please choose a star rating');
 		$this->options['labels']['text'] = $this->_('Comments'); 
 		$this->options['labels']['submit'] = $this->_('Submit'); 
 
@@ -256,8 +254,8 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$attrs = $options['attrs'];
 		$id = $attrs['id'];
 		$submitKey = $id . "_submit";
-		$inputValues = array('cite' => '', 'email' => '', 'website' => '', 'stars' => '', 'text' => '', 'notify' => ''); 
-		$user = wire('user'); 
+		$inputValues = array('cite' => '', 'email' => '', 'website' => '', 'stars' => '', 'text' => '', 'notify' => '');
+		$user = $this->wire('user'); 
 
 		if($user->isLoggedin()) {
 			$inputValues['cite'] = $user->name; 
@@ -350,7 +348,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 				"\n\t\t<input type='text' name='website' class='website' id='{$id}_website' value='$inputValues[website]' maxlength='255' />" .
 				"\n\t</p>";
 		}
-		
+
 		if($this->commentsField->useStars && $this->commentsField->schemaVersion > 5) {
 			$commentStars = new CommentStars();
 			$starsClass = 'CommentFormStars';
@@ -364,7 +362,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 				"\n\t<p class='$starsClass {$id}_stars' data-note='$starsNote'>" .
 				($labels['stars'] ? "\n\t\t<label for='{$id}_stars'>$labels[stars]</label>" : "") .
 				"\n\t\t<input type='number' name='stars' id='{$id}_stars' value='$inputValues[stars]' min='0' max='5' />" .
-				"\n\t\t" . $commentStars->render(0, true) . 
+				"\n\t\t" . $commentStars->render(0, true) .
 				"\n\t</p>";
 		}
 
@@ -409,7 +407,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 				"\n\t\t</label>" . 
 				"\n\t</p>";
 		}
-		
+
 		if($this->commentsField->useStars && $this->commentsField->schemaVersion > 5) {
 			$commentStars = new CommentStars();
 			$starsClass = 'CommentFormStars';
@@ -421,11 +419,11 @@ class CommentForm extends Wire implements CommentFormInterface {
 			}
 			$form .=
 				"\n\t<p class='$starsClass {$id}_stars' data-note='$starsNote'>" .
-				"\n\t\t<label>" . 
+				"\n\t\t<label>" .
 				"\n\t\t\t<span>$labels[stars]</span>" .
 				"\n\t\t\t<input type='number' name='stars' id='{$id}_stars' value='$inputValues[stars]' min='0' max='5' />" .
-				"\n\t\t\t" . $commentStars->render(0, true) . 
-				"\n\t\t</label>" . 
+				"\n\t\t\t" . $commentStars->render(0, true) .
+				"\n\t\t</label>" .
 				"\n\t</p>";
 		}
 
@@ -493,7 +491,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			if(empty($data[$key])) return false; 
 		}
 
-		$comment = new Comment(); 
+		$comment = $this->wire(new Comment()); 
 		$comment->user_agent = $_SERVER['HTTP_USER_AGENT']; 
 		$comment->ip = $this->wire('session')->getIP();
 		$comment->created_users_id = $this->user->id; 
@@ -504,7 +502,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		// $sessionData = array(); 
 
 		foreach(array('cite', 'email', 'website', 'stars', 'text') as $key) {
-			if($key == 'website' && (!$this->commentsField || !$this->commentsField->useWebsite)) continue; 
+			if($key == 'website' && (!$this->commentsField || !$this->commentsField->useWebsite)) continue;
 			if($key == 'stars' && (!$this->commentsField || !$this->commentsField->useStars)) continue;
 			if($this->options['presetsEditable'] || !isset($this->options['presets'][$key]) || $this->options['presets'][$key] === null) {
 				$comment->$key = $data->$key; // Comment performs sanitization/validation

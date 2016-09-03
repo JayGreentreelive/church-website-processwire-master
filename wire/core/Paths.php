@@ -1,24 +1,26 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Paths
  *
  * Maintains lists of file paths, primarily used by the ProcessWire configuration.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
- * @see https://processwire.com/api/variables/config/ Offical $config API variable Documentation
+ * @see http://processwire.com/api/variables/config/ Offical $config API variable Documentation
  * 
  * @property string $root Site root: /
  * @property string $templates Site templates: /site/templates/
+ * @property string $fieldTemplates Site field templates /site/templates/fields/
  * @property string $adminTemplates Admin theme template files: /wire/templates-admin/ or /site/templates-admin/
  * @property string $modules Core modules: /wire/modules/
  * @property string $siteModules Site-specific modules: /site/modules/
  * @property string $core ProcessWire core files: /wire/core/
+ * @property string $site ProcessWire site files /site/
  * @property string $assets Site-specific assets: /site/assets/
  * @property string $cache Site-specific cache: /site/assets/cache/
  * @property string $logs Site-specific logs: /site/assets/logs/
@@ -66,6 +68,7 @@ class Paths extends WireData {
 	 */
 	public function __construct($root) {
 		$this->_root = $root;
+		$this->useFuel(false);
 	}
 
 	/**

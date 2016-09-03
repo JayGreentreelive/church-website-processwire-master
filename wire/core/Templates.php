@@ -1,48 +1,18 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Templates
  *
  * Manages and provides access to all the Template instances
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ * 
+ * #pw-summary Manages and provides access to all the Templates.
  *
- */
-
-/**
- * WireArray of Template instances
- *
- */
-class TemplatesArray extends WireArray {
-
-	public function isValidItem($item) {
-		return $item instanceof Template; 	
-	}
-
-	public function isValidKey($key) {
-		return is_int($key) || ctype_digit($key); 
-	}
-
-	public function getItemKey($item) {
-		return $item->id; 
-	}
-
-	public function makeBlankItem() {
-		return new Template();
-	}
-
-}
-
-/**
- * Manages and provides access to all the Template instances
- *
- * @method Templates find() find($selectorString) Return the templates matching the the given selector query.
- * @method bool save() save(Template $template) Save the given template instance.
- * @method bool delete() delete($template) Delete the given template instance. Note that this will throw a fatal error if the template is in use by any pages.
+ * @method TemplatesArray find($selector) Return the templates matching the the given selector query. #pw-internal
+ * @method bool save(Template $template) Save the given Template.
+ * @method bool delete() delete(Template $template) Delete the given Template. Note that this will throw a fatal error if the template is in use by any pages.
  *
  */
 class Templates extends WireSaveableItems {
@@ -73,21 +43,27 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function __construct(Fieldgroups $fieldgroups, $path) {
+		$fieldgroups->wire($this);
 		$this->fieldgroups = $fieldgroups; 
-		$this->templatesArray = new TemplatesArray();
+		$this->templatesArray = $this->wire(new TemplatesArray());
 		$this->path = $path;
 	}
 
 	/**
 	 * Initialize the TemplatesArray and populate
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function init() {
+		$this->wire($this->templatesArray);
 		$this->load($this->templatesArray); 
 	}
 
 	/**
 	 * Return the WireArray that this DAO stores it's items in
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getAll() {
@@ -96,14 +72,18 @@ class Templates extends WireSaveableItems {
 
 	/**
 	 * Return a new blank item 
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Template(); 
+		return $this->wire(new Template()); 
 	}
 
 	/**
 	 * Return the name of the table that this DAO stores item records in
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getTable() {
@@ -112,6 +92,8 @@ class Templates extends WireSaveableItems {
 
 	/**
 	 * Return the field name that fields should initially be sorted by
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getSort() {
@@ -119,7 +101,12 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
+	 * Get a template by name or ID
+	 * 
 	 * Given a template ID or name, return the matching template or NULL if not found.
+	 * 
+	 * @param string|int $key Template name or ID
+	 * @return Template|null
 	 *
 	 */
 	public function get($key) {
@@ -129,18 +116,21 @@ class Templates extends WireSaveableItems {
 		return $value; 
 	}
 
-
 	/**
-	 * Update or insert template to database 
+	 * Save a Template
+	 * 
+	 * ~~~~~
+	 * $templates->save($template); 
+	 * ~~~~~
 	 *
-	 * If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup. 
-	 *
-	 * @param Saveable|Template $item 
-	 * @return bool true on success
+	 * @param Saveable|Template $item Template to save
+	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
+		
+		// If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup. 
 
 		$isNew = $item->id < 1; 
 
@@ -161,7 +151,7 @@ class Templates extends WireSaveableItems {
 		if($result && !$isNew && $item->fieldgroupPrevious && $item->fieldgroupPrevious->id != $item->fieldgroup->id) {
 			// the fieldgroup has been changed
 			// remove data from all fields that are not part of the new fieldgroup
-			$removeFields = new FieldsArray();
+			$removeFields = $this->wire(new FieldsArray());
 			foreach($item->fieldgroupPrevious as $field) {
 				if(!$item->fieldgroup->has($field)) {
 					$removeFields->add($field); 
@@ -184,7 +174,7 @@ class Templates extends WireSaveableItems {
 		}
 
 		if($rolesChanged) { 
-			$access = new PagesAccess();
+			$access = $this->wire(new PagesAccess());
 			$access->updateTemplate($item); 
 		}
 		
@@ -194,7 +184,11 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
-	 * Delete a template and unset it from this object. 
+	 * Delete a Template
+	 * 
+	 * @param Template|Saveable $item Template to delete
+	 * @return bool True on success, false on failure
+	 * @throws WireException Thrown when you attempt to delete a template in use, or a system template. 
 	 *
 	 */
 	public function ___delete(Saveable $item) {
@@ -208,15 +202,15 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
-	 * Create and return a cloned copy of this template
+	 * Clone the given Template
 	 *
-	 * Note that this also clones the Fieldgroup if the template being cloned has it's own named fieldgroup.
+	 * Note that this also clones the Fieldgroup if the template being cloned has its own named fieldgroup.
 	 * 
 	 * @todo: clone the fieldgroup context settings too. 
 	 *
-	 * @param Template|Saveable $item Item to clone
-	 * @param string $name
-	 * @return bool|Saveable|Template $item Returns the new clone on success, or false on failure
+	 * @param Template|Saveable $item Template to clone
+	 * @param string $name Name of new template that will be created, or omit to auto-assign. 
+	 * @return bool|Saveable|Template $item Returns the new Template on success, or false on failure
 	 *
 	 */
 	public function ___clone(Saveable $item, $name = '') {
@@ -259,14 +253,14 @@ class Templates extends WireSaveableItems {
 	/**
 	 * Return the number of pages using the provided Template
 	 * 
-	 * @param Template $tpl
-	 * @return int
+	 * @param Template $tpl Template you want to get count for 
+	 * @return int Total number of pages in use by given Template
 	 *
 	 */
 	public function getNumPages(Template $tpl) {
 		$database = $this->wire('database');
 		$query = $database->prepare("SELECT COUNT(*) AS total FROM pages WHERE templates_id=:template_id"); // QA
-		$query->bindValue(":template_id", $tpl->id, PDO::PARAM_INT);
+		$query->bindValue(":template_id", $tpl->id, \PDO::PARAM_INT);
 		$query->execute();
 		return (int) $query->fetchColumn();	
 	}
@@ -276,14 +270,16 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	protected function encodeData(array $value) {
-		return wireEncodeJSON($value, array('slashUrls')); 	
+		return wireEncodeJSON($value, array('slashUrls', 'compile')); 	
 	}
 
 	/**
-	 * Return data for external storage
+	 * Export Template data for external use
 	 * 
-	 * @param Template $template
-	 * @return array
+	 * #pw-advanced
+	 * 
+	 * @param Template $template Template you want to export
+	 * @return array Associative array of export data
 	 *
 	 */
 	public function ___getExportData(Template $template) {
@@ -350,17 +346,28 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
-	 * Given an array of export data, import it to the given template
+	 * Given an array of Template export data, import it to the given Template
+	 * 
+	 * ~~~~~~
+	 * // Example of return value
+	 * $returnValue = array(
+	 *   'property_name' => array(
+	 *     'old' => 'old value', // old value (in string comparison format)
+	 *     'new' => 'new value', // new value (in string comparison format)
+	 *     'error' => 'error message or blank if no error' // error message (string) or messages (array)
+	 *   ), 
+	 *   'another_property_name' => array(
+	 *     // ...
+	 *   ) 
+	 * );
+	 * ~~~~~~
 	 *
-	 * @param Template $template
-	 * @param array $data
+	 * #pw-advanced
+	 * 
+	 * @param Template $template Template you want to import to
+	 * @param array $data Import data array (must have been exported from getExportData() method).
 	 * @return bool True if successful, false if not
-	 * @return array Returns array(
-	 * 	[property_name] => array(
-	 * 		'old' => 'old value', // old value (in string comparison format)
-	 * 		'new' => 'new value', // new value (in string comparison format)
-	 * 		'error' => 'error message or blank if no error'  // error message (string) or messages (array)
-	 * 		)
+	 * @return array Returns array with list of changes (see example in method description)
 	 *
 	 */
 	public function ___setImportData(Template $template, array $data) {
@@ -378,7 +385,7 @@ class Templates extends WireSaveableItems {
 			if($key == 'fieldgroups_id' && !ctype_digit("$value")) {
 				$fieldgroup = $this->wire('fieldgroups')->get($value);
 				if(!$fieldgroup) {
-					$fieldgroup = new Fieldgroup();
+					$fieldgroup = $this->wire(new Fieldgroup());
 					$fieldgroup->name = $value;
 				}
 				$oldValue = $template->fieldgroup ? $template->fieldgroup->name : '';
@@ -386,7 +393,7 @@ class Templates extends WireSaveableItems {
 				$error = '';
 				try {
 					$template->setFieldgroup($fieldgroup);
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->trackException($e, false);
 					$error = $e->getMessage();
 				}
@@ -417,7 +424,7 @@ class Templates extends WireSaveableItems {
 					$template->set($key, $value);
 					if($key == 'roles') $template->getRoles(); // forces reload of roles (and resulting error messages)
 					$error = $template->errors("clear");
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->trackException($e, false);
 					$error = array($e->getMessage());
 				}
@@ -448,12 +455,11 @@ class Templates extends WireSaveableItems {
 	/**
 	 * Return the parent page that this template assumes new pages are added to
 	 *
-	 * This is based on family settings, when applicable.
-	 * It also takes into account user access, if requested (see arg 1).
-	 *
-	 * If there is no shortcut parent, NULL is returned.
-	 * If there are multiple possible shortcut parents, a NullPage is returned.
-	 *
+	 * - This is based on family settings, when applicable.
+	 * - It also takes into account user access, if requested (see arg 1).
+	 * - If there is no shortcut parent, NULL is returned.
+	 * - If there are multiple possible shortcut parents, a NullPage is returned.
+	 * 
 	 * @param Template $template
 	 * @param bool $checkAccess Whether or not to check for user access to do this (default=false).
 	 * @param bool $getAll Specify true to return all possible parents (makes method always return a PageArray)
@@ -463,7 +469,7 @@ class Templates extends WireSaveableItems {
 	public function getParentPage(Template $template, $checkAccess = false, $getAll = false) {
 		
 		$foundParent = null;
-		$foundParents = $getAll ? new PageArray() : null;
+		$foundParents = $getAll ? $this->wire('pages')->newPageArray() : null;
 
 		if($template->noShortcut || !count($template->parentTemplates)) return $foundParents;
 		if($template->noParents == -1) {
@@ -497,7 +503,7 @@ class Templates extends WireSaveableItems {
 				continue;
 			} else if($numParentPages > 1) {
 				// multiple possible parents
-				$parentPage = new NullPage();
+				$parentPage = $this->wire('pages')->newNullPage();
 			} else {
 				// one possible parent
 				$parentPage = $parentPages->first();
@@ -506,8 +512,7 @@ class Templates extends WireSaveableItems {
 			if($checkAccess) {
 				if($parentPage->id) {
 					// single defined parent
-					$p = new Page();
-					$p->template = $template;
+					$p = $this->wire('pages')->newPage(array('template' => $template));
 					if(!$parentPage->addable($p)) continue;
 				} else {
 					// multiple possible parents
@@ -520,8 +525,7 @@ class Templates extends WireSaveableItems {
 		}
 		
 		if($checkAccess && $foundParents && $foundParents->count()) {
-			$p = new Page();
-			$p->template = $template; 
+			$p = $this->wire('pages')->newPage(array('template' => $template));
 			foreach($foundParents as $parentPage) {
 				if(!$parentPage->addable($p)) $foundParents->remove($parentPage);
 			}

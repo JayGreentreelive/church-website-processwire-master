@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire FieldtypeComments > CommentFilter
@@ -10,12 +10,9 @@
  *
  * Note that portions of code in here arefrom Akismet API examples. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
- * 
+ *
  *
  */
 
@@ -35,7 +32,7 @@ abstract class CommentFilter extends WireData {
 
 	public function setComment(Comment $comment) {
 		$this->comment = $comment; 
-		$this->set('pageUrl', $this->homeURL . $this->fuel('page')->url); 
+		$this->set('pageUrl', $this->homeURL . $this->wire('page')->url); 
 		if(!$comment->ip) $comment->ip = $_SERVER['REMOTE_ADDR']; 
 		if(!$comment->user_agent) $comment->user_agent = $_SERVER['HTTP_USER_AGENT']; 
 	}

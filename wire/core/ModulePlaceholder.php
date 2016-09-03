@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire ModulePlaceholder
@@ -6,10 +6,7 @@
  * Holds the place for a Module until it is included and instantiated.
  * As used by the Modules class. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://.processwire.com
  * 
  * @property bool $autoload
@@ -24,6 +21,7 @@
 class ModulePlaceholder extends WireData implements Module {
 
 	protected $class = '';
+	protected $ns = '';
 	protected $moduleInfo = array();
 
 	public function __construct() {
@@ -47,6 +45,10 @@ class ModulePlaceholder extends WireData implements Module {
 	public function setClass($class) {
 		$this->class = $class; 
 	}
+	
+	public function setNamespace($ns) {
+		$this->ns = $ns;
+	}
 
 	public function get($key) {
 		if($key == 'className' || $key == 'class' || $key == 'name') return $this->class;
@@ -62,6 +64,9 @@ class ModulePlaceholder extends WireData implements Module {
 	}
 
 	public function className($options = null) {
+		if($options === true || !empty($options['namespace'])) {
+			return trim($this->ns, '\\') . '\\' . $this->class;
+		}
 		return $this->class; 
 	}
 

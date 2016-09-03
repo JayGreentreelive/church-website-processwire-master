@@ -1,15 +1,23 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Process
  *
  * Process is the base Module class for each part of ProcessWire's web admin.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * #pw-summary Process modules are self contained applications that run in the ProcessWire admin. 
+ * #pw-summary-views Applicable only to Process modules that are using external output/view files. 
+ * #pw-summary-module-interface See the `Module` interface for full details on these methods. 
+ * #pw-order-groups common,views,module-interface,hooker
+ * #pw-body = 
+ * Please be sure to see the `Module` interface for full details on methods you can specify in a Process module. 
+ * #pw-body
  * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  * 
  * @method string|array execute()
  * @method Process headline(string $headline)
@@ -18,9 +26,11 @@
  * @method install()
  * @method uninstall()
  * @method upgrade($fromVersion, $toVersion)
- * @method Page installPage($name = '', $parent = null, $title = '', $template = 'admin', $extras = array())
- * @method int uninstallPage()
- * @method string executeNavJSON(array $options = array())
+ * @method Page installPage($name = '', $parent = null, $title = '', $template = 'admin', $extras = array()) #pw-internal
+ * @method int uninstallPage() #pw-internal
+ * @method string executeNavJSON(array $options = array()) #pw-internal @todo
+ * @method ready()
+ * @method setConfigData(array $data)
  *
  */
 
@@ -97,9 +107,13 @@ abstract class Process extends WireData implements Module {
 	 * 
 	 */
 	private $_viewVars = array();
+	
+	public function __construct() { }
 
 	/**
 	 * Per the Module interface, Initialize the Process, loading any related CSS or JS files
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function init() { 
@@ -107,7 +121,15 @@ abstract class Process extends WireData implements Module {
 	}
 
 	/**
-	 * Execute this Process and return the output 
+	 * Execute this Process and return the output. You may have any number of execute[name] methods, triggered by URL segments.
+	 * 
+	 * When any execute() method returns a string, it us used as the actual output. 
+	 * When the method returns an associative array, it is considered an array of variables
+	 * to send to the output view layer.
+	 * 
+	 * This execute() method is called when no URL segments are present. You may have any 
+	 * number of execute() methods, i.e. `executeFoo()` would be called for the URL `./foo/` 
+	 * and `executeBarBaz()` would be called for the URL `./bar-baz/`.
 	 *
 	 * @return string|array
 	 *
@@ -115,19 +137,33 @@ abstract class Process extends WireData implements Module {
 	public function ___execute() { }
 
 	/**
+	 * Hookable method automatically called after execute() method has finished.
+	 * 
+	 * #pw-hooker
+	 * 
+	 * @param string $method Name of method that was executed
+	 * 
+	 */
+	public function ___executed($method) { }
+
+	/**
 	 * Get a value stored in this Process
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string $key
 	 * @return mixed
 	 *
 	 */
 	public function get($key) {
-		if(($value = $this->getFuel($key)) !== null) return $value; 
+		if(($value = $this->wire($key)) !== null) return $value; 
 		return parent::get($key); 
 	}
 
 	/**
 	 * Per the Module interface, Process modules only retain one instance in memory
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isSingular() {
@@ -136,6 +172,8 @@ abstract class Process extends WireData implements Module {
 
 	/**
 	 * Per the Module interface, Process modules are not loaded until requested from from the API
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isAutoload() {
@@ -143,7 +181,11 @@ abstract class Process extends WireData implements Module {
 	}
 
 	/**
-	 * Set the current headline to appear in the interface
+	 * Set the current primary headline to appear in the admin interface
+	 * 
+	 * ~~~~~
+	 * $this->headline("Hello World"); 
+	 * ~~~~~
 	 * 
 	 * @param string $headline
 	 * @return this
@@ -155,7 +197,11 @@ abstract class Process extends WireData implements Module {
 	}
 	
 	/**
-	 * Set the current browser <title> 
+	 * Set the current browser title tag
+	 * 
+	 * ~~~~~
+	 * $this->browserTitle("Hello World"); 
+	 * ~~~~~
 	 *
 	 * @param string $title
 	 * @return this
@@ -169,8 +215,12 @@ abstract class Process extends WireData implements Module {
 	/**
 	 * Add a breadcrumb
 	 * 
-	 * @param string $href
-	 * @param string $label
+	 * ~~~~~
+	 * $this->breadcrumb("../", "Widgets"); 
+	 * ~~~~~
+	 * 
+	 * @param string $href URL of breadcrumb
+	 * @param string $label Label for breadcrumb
 	 * @return this
 	 *
 	 */
@@ -189,9 +239,14 @@ abstract class Process extends WireData implements Module {
 	}
 
 	/**
-	 * Per the Module interface, Install the Process module
+	 * Per the Module interface, Install the module
 	 *
-	 * By default a permission equal to the name of the class is installed, unless overridden with the 'permission' property in getModuleInfo().
+	 * By default a permission equal to the name of the class is installed, unless overridden with 
+	 * the 'permission' property in your module information array. 
+	 * 
+	 * See the `Module` interface and the `install` method there for more details. 
+	 * 
+	 * #pw-group-module-interface
 	 *
 	 */
 	public function ___install() {
@@ -224,7 +279,11 @@ abstract class Process extends WireData implements Module {
 	/**
 	 * Uninstall this Process
 	 *
-	 * Note that the Modules class handles removal of any Permissions that the Process may have installed
+	 * Note that the Modules class handles removal of any Permissions that the Process may have installed.
+	 * 
+	 * See the `Module` interface and the `uninstall` method there for more details.
+	 * 
+	 * #pw-group-module-interface
 	 *
 	 */
 	public function ___uninstall() {
@@ -235,9 +294,13 @@ abstract class Process extends WireData implements Module {
 
 	/**
 	 * Called when module version changes
+	 *
+	 * See the `Module` interface and the `upgrade` method there for more details.
 	 * 
-	 * @param $fromVersion
-	 * @param $toVersion
+	 * #pw-group-module-interface
+	 * 
+	 * @param $fromVersion Previous version
+	 * @param $toVersion New version
 	 * @throws WireException if upgrade fails
 	 * 
 	 */
@@ -249,6 +312,8 @@ abstract class Process extends WireData implements Module {
 	 * Install a dedicated page for this Process module and assign it this Process
 	 * 
 	 * To be called by Process module's ___install() method. 
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param string $name Desired name of page, or omit (or blank) to use module name
 	 * @param Page|string|int|null Parent for the page, with one of the following:
@@ -276,7 +341,7 @@ abstract class Process extends WireData implements Module {
 		if(!$parent || !$parent->id) $parent = $adminPage; // default
 		$page = $parent->child("include=all, name=$name"); // does it already exist?
 		if($page->id && $page->process == $this) return $page; // return existing copy
-		$page = new Page();
+		$page = $this->wire('pages')->newPage();
 		$page->template = $template ? $template : 'admin';
 		$page->name = $name; 
 		$page->parent = $parent; 
@@ -295,6 +360,8 @@ abstract class Process extends WireData implements Module {
 	 * If there is more than one page using this Process, it will trash them all.
 	 * 
 	 * To be called by the Process module's ___uninstall() method. 
+	 * 
+	 * #pw-hooker
 	 * 
 	 * @return int Number of pages trashed
 	 *
@@ -318,7 +385,9 @@ abstract class Process extends WireData implements Module {
 	 * 
 	 * Optional/applicable only to Process modules that manage groups of items.
 	 * 
-	 * This method is only used if your getModuleInfo returns TRUE for useNavJSON
+	 * This method is only used if your module information array contains a `useNavJSON` property with boolean true. 
+	 * 
+	 * #pw-internal @todo work on documenting this method further
 	 * 
 	 * @param array $options For descending classes to modify behavior (see $defaults in method)
 	 * @return string rendered JSON string
@@ -400,7 +469,7 @@ abstract class Process extends WireData implements Module {
 			);
 		}
 		// sort alpha, case insensitive
-		if($options['sort']) uksort($data['list'], 'strcasecmp'); 
+		if($options['sort']) uksort($data['list'], 'strcasecmp');
 		$data['list'] = array_values($data['list']); 
 		
 		if(!empty($options['getArray'])) return $data;
@@ -410,7 +479,13 @@ abstract class Process extends WireData implements Module {
 	}
 
 	/**
-	 * Set the file to use for the output view, if different from default
+	 * Set the file to use for the output view, if different from default.
+	 * 
+	 * - The default view file for the execute() method would be: ./views/execute.php
+	 * - The default view file for an executeFooBar() method would be: ./views/execute-foo-bar.php
+	 * - To specify your own view file independently of these defaults, use this method. 
+	 * 
+	 * #pw-group-views
 	 * 
 	 * @param string $file File must be relative to the module's home directory.
 	 * @return $this
@@ -427,9 +502,11 @@ abstract class Process extends WireData implements Module {
 	}
 
 	/**
-	 * If a view file has been set, this returns the full path to it
+	 * If a view file has been set, this returns the full path to it.
 	 * 
-	 * @return string Blank if no view file set, full path and file if set
+	 * #pw-group-views
+	 * 
+	 * @return string Blank if no view file set, full path and file if set.
 	 * 
 	 */
 	public function getViewFile() {
@@ -437,9 +514,14 @@ abstract class Process extends WireData implements Module {
 	}
 
 	/**
-	 * Set a variable that will be passed to the output view
+	 * Set a variable that will be passed to the output view.
 	 * 
-	 * @param string|array $key Property to set, or array of property=>value to set (leaving 2nd argument as null)
+	 * You can also do this by having your execute() method(s) return an associative array of 
+	 * variables to send to the view file.
+	 * 
+	 * #pw-group-views
+	 * 
+	 * @param string|array $key Property to set, or array of `[property => value]` to set (leaving 2nd argument as null)
 	 * @param mixed|null $value Value to set
 	 * @return $this
 	 * @throws WireException if given an invalid type for $key
@@ -458,6 +540,8 @@ abstract class Process extends WireData implements Module {
 
 	/**
 	 * Get all variables set for the output view
+	 * 
+	 * #pw-group-views
 	 * 
 	 * @return array associative
 	 * 

@@ -1,14 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Image Select + Edit Process
  *
  * Provides the image selecting and editing capability for rich text editors (TinyMCE/CKEditor)
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property int $hidpiDefault HiDPI/Retina checkbox default checked?
@@ -27,7 +24,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides image manipulation functions for image fields and rich text editors.',
-			'version' => 119,
+			'version' => 120,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -45,6 +42,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected $labels = array();
 	protected $rte = true; // in RTE mode?
 	protected $field = null;
+	protected $fieldName = '';
 	protected $original = '';
 	protected $caption = '';
 
@@ -95,6 +93,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			'rotateLeft' => $this->_('Rotate to the left'), 
 			'flipHorizontal' => $this->_('Flip horizontal'),
 			'flipVertical' => $this->_('Flip vertical'),
+			'noAccess' => $this->_('You do not have access to edit images on this page.'),
 		);
 	}
 
@@ -130,6 +129,12 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	
 		$fieldName = $this->wire('sanitizer')->fieldName($this->wire('input')->get('field')); 
 		if($fieldName) {
+			$this->fieldName = $fieldName; // original
+			if(strpos($fieldName, '_repeater') && preg_match('/_repeater\d+$/', $fieldName, $matches)) {
+				$fieldName = str_replace($matches[0], '', $fieldName);
+			} else if(strpos($fieldName, '_LPID')) {
+				list($fieldName, $lpid) = explode('_LPID', $fieldName);
+			}
 			$this->field = $this->wire('fields')->get($fieldName); 
 			if(!$this->field) throw new WireException("Unknown field $fieldName"); 
 			if(!$this->field->type instanceof FieldtypeImage) throw new WireException("Field $fieldName is not an instance of FieldtypeImage"); 
@@ -149,11 +154,11 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				// extended asset path format: 1/2/3/filename.jpg
 				$id = PagefilesManager::dirToPageID($matches[1]); 
 
-			} else if(preg_match('{^' . wire('config')->urls->root . '([-_./a-zA-Z0-9]*/)' . wire('config')->pagefileUrlPrefix . '[^/]+\.(' . $this->extensions . ')$}iD', $this->input->get->file, $matches)) {
+			} else if(preg_match('{^' . $this->wire('config')->urls->root . '([-_./a-zA-Z0-9]*/)' . $this->wire('config')->pagefileUrlPrefix . '[^/]+\.(' . $this->extensions . ')$}iD', $this->input->get->file, $matches)) {
 				// .............................../....................path/to/page.........................-?....................filename..........ext
 				// legacy pagefileSecure URL format: /path/to/page/filename.jpg
 				// @todo: does this still need to be here or can it be dropped?
-				$this->page = wire('pages')->get('/' . $matches[1]);
+				$this->page = $this->wire('pages')->get('/' . $matches[1]);
 				$id = $this->page->id;
 			}
 		}
@@ -171,8 +176,19 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			if($this->page->id === $user->id && $fieldName
 				&& $this->wire('modules')->get('PagePermissions')->userFieldEditable($fieldName)) {
 				// user editing allowed images field in their profile
+			} else if(strpos($this->page->className(), 'Repeater') !== false) {
+				/** @var RepeaterPage $p */
+				$p = $this->page; 
+				while(strpos($p->className(), 'Repeater') !== false) {
+					$p = $p->getForPage();
+				}
+				if($p && $p->id && $p->editable()) {
+					// okay
+				} else {
+					throw new WireException($this->labels['noAccess']);
+				}
 			} else {
-				throw new WireException("You do not have access to images on this page");
+				throw new WireException($this->labels['noAccess']);
 			}
 		}
 
@@ -254,7 +270,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$original = $images[$file]; 
 		$variationPathname = $original->pagefiles->path() . $variationFilename; 
 		$pageimage = null;
-		if(is_file($variationPathname)) $pageimage = new Pageimage($original->pagefiles, $variationPathname); 
+		if(is_file($variationPathname)) $pageimage = $this->wire(new Pageimage($original->pagefiles, $variationPathname)); 
 		if(!$pageimage) throw new WireException("Unrecognized variation file: $file"); 
 		
 		return $pageimage; 
@@ -383,6 +399,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 					if($width > $this->maxImageWidth) $width = $this->maxImageWidth;
 					$img = "<img src='$image->URL' width='$width' alt=\"$alt\" />";
 				} else {
+					$image->set('_requireHeight', true); // recognized by InputfieldImage
 					$info = $in->getAdminThumb($image); 
 					$img = $info['markup'];
 				}
@@ -506,7 +523,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			}
 		}
 		if(!$this->rte) $parts['rte'] = '0';
-		if($this->field) $parts['field'] = $this->field->name; 
+		if($this->field) $parts['field'] = $this->fieldName; 
 		
 		if(!isset($parts['winwidth'])) {
 			$winwidth = (int) $this->wire('input')->get('winwidth'); 
@@ -530,16 +547,16 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 	/**
 	 * Check if user has image edit permission and throw exception if they don't
-	 * 
+	 *
 	 * @param bool $throw Specify false if you only want this method to return a true|false rather than throw exception
 	 * @throws WirePermissionException
 	 * @return bool if the $throw argument was false
-	 * 
+	 *
 	 */
 	public function checkImageEditPermission($throw = true) {
 		if(!$this->rte && !$this->wire('user')->hasPermission('page-edit-images', $this->page)) {
 			if($throw) {
-				throw new WirePermissionException($this->_('You do not have access to edit images on this page.'));
+				throw new WirePermissionException($this->labels['noAccess']);
 			} else {
 				return false;
 			}
@@ -579,8 +596,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 * 
 	 */
 	public function ___executeEdit() {
-		
-		$this->checkImageEditPermission();	
+
+		$this->checkImageEditPermission();
 
 		if($this->wire('input')->post('submit_crop')) {
 			$crop = $this->processCrop();
@@ -632,7 +649,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$isCroppable = !$isCropped;
 		try {
 			$original = $this->getPageimage(false);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			if($this->rte) {
 				// when RTE mode, go to image selection again when invalid image
 				$this->error($e->getMessage());
@@ -779,7 +796,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		// @todo move all this markup to a separate template file
 		$out =	
 			"<form id='selected_image_settings' class='$formClass' method='post' action='$formActionURL'>" .
-			"<small>" . 
+			"<small class='ui-helper-clearfix'>" . 
 			"<p id='wrap_info'>" .
 				"<select id='selected_image_class' name='class'>" .
 					"<option value=''>" . $this->_('No Alignment') . "</option>" .
@@ -983,11 +1000,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				if($rebuildVariations && $this->field->adminThumbs) {
 					// remove original thumbnail
 					$inputfield = $this->field->getInputfield($this->page);
-					$thumb = $inputfield->getAdminThumb($original);
-					$thumb = $thumb['thumb'];
-					if($thumb->url != $original->url) {
-						// there is a thumbnail, distinct from the original image
-						unlink($thumb->filename);
+					if($inputfield) {
+						$thumb = $inputfield->getAdminThumb($original);
+						$thumb = $thumb['thumb'];
+						if($thumb->url != $original->url) {
+							// there is a thumbnail, distinct from the original image
+							unlink($thumb->filename);
+						}
 					}
 				}
 				
@@ -1049,7 +1068,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			<h2><i class='fa fa-spin fa-spinner fa-2x fa-fw ui-priority-secondary'></i> $headline</h2>
 			$body
 			<script>
-			$(document).ready(function() { setupProcessSave('{$this->field->name}', '$fileID', $isNew); });	
+			$(document).ready(function() { setupProcessSave('$this->fieldName', '$fileID', $isNew); });	
 			</script>
 			";
 		
@@ -1077,7 +1096,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 * 
 	 */
 	public function ___executeResize() {
-		
+
 		$this->checkImageEditPermission();
 
 		$width = (int) $this->input->get('width'); 
@@ -1178,7 +1197,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$pageimage = $this->getPageimage();
 		
 		if(!$this->page || !$pageimage) throw new WireException("No file provided"); 
-		if(!$this->page->editable()) throw new WireException("Page is not editable"); 
+		if(!$this->page->editable()) throw new WireException("Page is not editable");
 		$hasEditPermission = $this->wire('user')->hasPermission('page-edit-images', $this->page);
 		
 		$variations = $pageimage->getVariations(array('info' => true));
@@ -1217,7 +1236,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			$this->_x('Size', 'th'),
 			$this->_x('Modified', 'th'),  
 			$this->_x('Notes', 'th'),
-			($hasEditPermission ? "<label><input type='checkbox' id='delete_all' value='1' /></label>" : "&nbsp;"), 
+			($hasEditPermission ? "<label><input type='checkbox' id='delete_all' value='1' /></label>" : "&nbsp;")
 		));
 		
 		$cnt = 0;
@@ -1270,7 +1289,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$form->attr('id', 'ImageVariations'); 
 		$form->action = "./?id={$this->page->id}&file=$pageimage->basename&varcnt=$varcnt";
 		$form->prependMarkup = $table->render();
-	
+
 		if($hasEditPermission) {
 			$submit = $this->wire('modules')->get('InputfieldSubmit');
 			$submit->attr('value', $this->_('Delete Checked'));
@@ -1303,63 +1322,63 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 * @return InputfieldWrapper
 	 * 
 	 */
-	static public function getModuleConfigInputfields(array $data) {
-		$inputfields = new InputfieldWrapper();
+	public function getModuleConfigInputfields(array $data) {
+		$inputfields = $this->wire(new InputfieldWrapper());
 		$data = array_merge(self::$defaultConfig, $data); 
 		
-		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', 'hidpiDefault'); 
-		$f->label = __('HiDPI/Retina checkbox default checked?'); 
-		$f->description = __('Check this box to have the HiDPI/Retina checkbox checked by default for newly inserted images.'); 
+		$f->label = $this->_('HiDPI/Retina checkbox default checked?'); 
+		$f->description = $this->_('Check this box to have the HiDPI/Retina checkbox checked by default for newly inserted images.'); 
 		if(!empty($data['hidpiDefault'])) $f->attr('checked', 'checked'); 
 		$f->columnWidth = 50;
 		$inputfields->add($f); 
 		
-		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', 'noThumbs'); 
-		$f->label = __('Do not generate thumbnail images'); 
-		$f->description = __('When checked, image selection will use full-size images rather than thumbnail images.'); 
+		$f->label = $this->_('Do not generate thumbnail images'); 
+		$f->description = $this->_('When checked, image selection will use full-size images rather than thumbnail images.'); 
 		if(!empty($data['noThumbs'])) $f->attr('checked', 'checked');
 		$f->columnWidth = 50;
 		$inputfields->add($f); 
 
-		$f = wire('modules')->get('InputfieldText'); 
+		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'skipFields'); 
 		$f->attr('value', isset($data['skipFields']) ? $data['skipFields'] : ''); 
-		$f->label = __('Field names to skip for selection'); 
-		$f->description = __('Enter the names of any image fields (separated by a space) that you do not want to allow for selection with this module.'); 
+		$f->label = $this->_('Field names to skip for selection'); 
+		$f->description = $this->_('Enter the names of any image fields (separated by a space) that you do not want to allow for selection with this module.'); 
 		$inputfields->add($f); 
 
-		$f = wire('modules')->get('InputfieldCheckbox');
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', 'noSizeAttrs'); 
 		$f->attr('value', 1);
 		if(!empty($data['noSizeAttrs'])) $f->attr('checked', 'checked');
-		$f->label = __('Skip width attributes on image tags?', __FILE__); // noSizeAttr label
-		$f->description = __('By default, this module will include width attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
-		$f->notes = __('We do not recommend checking this box as it will interfere with some features (like use of HiDPI/retina images).'); 
+		$f->label = $this->_('Skip width attributes on image tags?', __FILE__); // noSizeAttr label
+		$f->description = $this->_('By default, this module will include width attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
+		$f->notes = $this->_('We do not recommend checking this box as it will interfere with some features (like use of HiDPI/retina images).'); 
 		$inputfields->add($f);
 
-		$notes = __('Recommended value:') . ' ';
-		$f = wire('modules')->get('InputfieldText'); 
+		$notes = $this->_('Recommended value:') . ' ';
+		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'alignLeftClass');
 		$f->attr('value', $data['alignLeftClass']); 
-		$f->label = __('Align Image Left Class'); 
+		$f->label = $this->_('Align Image Left Class'); 
 		$f->notes = $notes . '**align_left**';
 		$f->columnWidth = 33; 
 		$inputfields->add($f);
 		
-		$f = wire('modules')->get('InputfieldText'); 
+		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'alignCenterClass');
 		$f->attr('value', $data['alignCenterClass']); 
-		$f->label = __('Align Image Center Class');
+		$f->label = $this->_('Align Image Center Class');
 		$f->notes = $notes . '**align_center**';
 		$f->columnWidth = 34; 
 		$inputfields->add($f);
 		
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'alignRightClass');
 		$f->attr('value', $data['alignRightClass']);
-		$f->label = __('Align Image Right Class');
+		$f->label = $this->_('Align Image Right Class');
 		$f->notes = $notes . '**align_right**';
 		$f->columnWidth = 33;
 		$inputfields->add($f);

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PagesType
@@ -6,15 +6,23 @@
  * Provides an interface to the Pages class but specific to 
  * a given page class/type, with predefined parent and template. 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ *
+ * @method Page add($name)
+ * @method bool save(Page $page)
+ * @method bool delete(Page $page, $recursive = false)
+ * 
+ * @method saveReady(Page $page)
+ * @method saved(Page $page, array $changes = array(), $values = array())
+ * @method added(Page $page)
+ * @method deleteReady(Page $page)
+ * @method deleted(Page $page)
+ * 
  *
  */
 
-class PagesType extends Wire implements IteratorAggregate, Countable {
+class PagesType extends Wire implements \IteratorAggregate, \Countable {
 
 	/**
 	 * First template defined for use in this PagesType (legacy)
@@ -61,11 +69,13 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	/**
 	 * Construct this PagesType manager for the given parent and template
 	 *
+	 * @param ProcessWire $wire
 	 * @param Template|int|string|array $templates Template object or array of template objects, names or IDs
 	 * @param int|Page|array $parents Parent ID or array of parent IDs (may also be Page or array of Page objects)
 	 *
 	 */
-	public function __construct($templates = array(), $parents = array()) {
+	public function __construct(ProcessWire $wire, $templates = array(), $parents = array()) {
+		$this->setWire($wire);
 		$this->addTemplates($templates);
 		$this->addParents($parents); 
 	}
@@ -111,10 +121,12 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 			} else if(is_string($parent) && ctype_digit($parent)) {
 				$id = (int) $parent;
 			} else if(is_string($parent)) {
-				$parent = $this->wire('pages')->findOne($parent, array('loadOptions' => array('autojoin' => false)));
+				$parent = $this->wire('pages')->get($parent, array('loadOptions' => array('autojoin' => false)));
 				$id = $parent->id;
 			} else if(is_object($parent) && $parent instanceof Page) {
 				$id = $parent->id;
+			} else {
+				$id = 0;
 			}
 			if($id) {
 				$this->parents[$id] = $id;
@@ -150,6 +162,8 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 
 	/**
 	 * Each loaded page is passed through this function for additional checks if needed
+	 * 
+	 * @param Page $page
 	 *	
 	 */
 	protected function loaded(Page $page) { }
@@ -189,7 +203,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 		}
 	
 		if(!$validParent && count($this->parents)) {
-			$validParents = impode(', ', $this->parents);
+			$validParents = implode(', ', $this->parents);
 			$this->error("Page $page->path must have parent: $validParents");
 			return false;
 		}
@@ -229,6 +243,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 		if(!isset($options['loadOptions'])) $options['loadOptions'] = array();
 		$options['loadOptions'] = $this->getLoadOptions($options['loadOptions']); 
 		$pages = $this->wire('pages')->find($this->selectorString($selectorString), $options);
+		/** @var PageArray $pages */
 		foreach($pages as $page) {
 			if(!$this->isValid($page)) {
 				$pages->remove($page);
@@ -240,12 +255,11 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	}
 
 	/**
-	 * Like find() but returns only the first match as a Page object (not PageArray)
+	 * Get the first match of your selector string
 	 * 
-	 * This is an alias of the findOne() method for syntactic convenience and consistency.
-	 *
 	 * @param string $selectorString
 	 * @return Page|null
+	 * 
 	 */
 	public function get($selectorString) {
 		
@@ -258,7 +272,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 				$options['template'] = $this->template;
 				$options['parent_id'] = $this->parent_id; 
 				$page = $this->wire('pages')->getById(array((int) $selectorString), $options);
-				return $page ? $page : new NullPage();
+				return $page ? $page : $this->wire('pages')->newNullPage();
 			} else {
 				// multiple possible templates/parents
 				$page = $this->wire('pages')->getById(array((int) $selectorString), $options); 
@@ -279,8 +293,8 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 			// selector string with operators, can pass through
 		}
 
-		$page = $this->pages->findOne($this->selectorString($selectorString), array('loadOptions' => $options)); 
-		if($page->id && !$this->isValid($page)) $page = new NullPage();
+		$page = $this->pages->get($this->selectorString($selectorString), array('loadOptions' => $options)); 
+		if($page->id && !$this->isValid($page)) $page = $this->wire('pages')->newNullPage();
 		if($page->id) $this->loaded($page);
 		
 		return $page; 
@@ -336,11 +350,12 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 */
 	public function ___add($name) {
 		
-		$className = $this->getPageClass();
 		$parent = $this->getParent();
 
-		$page = new $className(); 
-		$page->template = $this->template; 
+		$page = $this->wire('pages')->newPage(array(
+			'pageClass' => $this->getPageClass(),
+			'template' => $this->template
+		)); 
 		$page->parent = $parent; 
 		$page->name = $name; 
 		$page->sort = $parent->numChildren; 
@@ -348,16 +363,16 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 		try {
 			$this->save($page); 
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false);
-			$page = new NullPage();
+			$page = $this->wire('pages')->newNullPage();
 		}
 
 		return $page; 
 	}
 
 	/**
-	 * Make it possible to iterate all pages of this type per the IteratorAggregate interface.
+	 * Make it possible to iterate all pages of this type per the \IteratorAggregate interface.
 	 *
 	 * Only recommended for page types that don't contain a lot of pages. 
 	 *
@@ -383,7 +398,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	}
 
 	public function getParent() {
-		return $this->wire('pages')->findOne($this->parent_id);
+		return $this->wire('pages')->get($this->parent_id);
 	}
 	
 	public function getParents() {
@@ -391,7 +406,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 			return $this->wire('pages')->getById($this->parents);
 		} else {
 			$parent = $this->getParent();
-			$parents = new PageArray();
+			$parents = $this->wire('pages')->newPageArray();
 			$parents->add($parent);
 			return $parents; 
 		}
@@ -439,7 +454,10 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 * @return array Optional extra data to add to pages save query.
 	 *
 	 */
-	public function ___saveReady(Page $page) { return array(); }
+	public function ___saveReady(Page $page) { 
+		if($page) {}
+		return array(); 
+	}
 
 	/**
 	 * Hook called after a page is successfully saved

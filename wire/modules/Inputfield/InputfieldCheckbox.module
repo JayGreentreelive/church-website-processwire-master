@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * An Inputfield for handling a single checkbox
@@ -87,16 +87,20 @@ class InputfieldCheckbox extends Inputfield {
 	public function ___renderValue() {
 		$value = $this->attr('value');
 		if($value != self::uncheckedValueDefault && $value != $this->uncheckedValue) {
-			$value = $this->checkedValue; 
+			$value = $this->wire('sanitizer')->entities($this->checkedValue); 
+			$value = $value === "1" ? $this->_('Checked') : $value;
+			$value = "<i class='fa fa-check-square-o'></i> $value";
 		} else {
-			$value = $this->uncheckedValue;
+			$value = $this->wire('sanitizer')->entities($this->uncheckedValue);
+			$value = empty($value) ? $this->_('Not checked') : $value;
+			$value = "<i class='fa fa-square-o'></i> $value";
 		}
 		return $value; 
 	}
 
 	public function setAttribute($key, $value) {
 
-		if($key == 'value' && $value && "$value" !== "$this->uncheckedValue") { 
+		if($key == 'value' && $value && "$value" !== "$this->uncheckedValue") {
 			if("$value" !== (string) self::checkedValueDefault) {
 				$this->checkedValue = $value; 
 				$this->checkedValueIsLabel = false;
@@ -147,7 +151,7 @@ class InputfieldCheckbox extends Inputfield {
 
 		if($this->hasFieldtype) return $inputfields;
 
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'checkedValue');
 		$f->attr('value', $this->checkedValue);
 		$f->label = $this->_('Checked Value');
@@ -156,7 +160,7 @@ class InputfieldCheckbox extends Inputfield {
 		$f->required = true; 
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'uncheckedValue');
 		$f->attr('value', "$this->uncheckedValue");
 		$f->label = $this->_('Unchecked Value');

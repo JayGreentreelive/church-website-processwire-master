@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Base class for Page List rendering
@@ -15,6 +15,7 @@ abstract class ProcessPageListRender extends Wire {
 	protected $actionTips = array();
 	protected $superuser = false;
 	protected $actions = null;
+	protected $options = array();
 
 	public function __construct(Page $page, PageArray $children) {
 		$this->page = $page;
@@ -38,8 +39,17 @@ abstract class ProcessPageListRender extends Wire {
 			'restore' => $this->_('Restore'), // Restore from trash action
 		);
 		require_once(dirname(__FILE__) . '/ProcessPageListActions.php');
-		$this->actions = new ProcessPageListActions($this);
+		$this->actions = $this->wire(new ProcessPageListActions($this));
 		$this->actions->setActionLabels($this->actionLabels);
+	}
+	
+	public function setOption($key, $value) {
+		$this->options[$key] = $value;
+		return $this;
+	}
+	
+	public function getOption($key) {
+		return isset($this->options[$key]) ? $this->options[$key] : null;
 	}
 
 	public function setStart($n) {
@@ -102,10 +112,10 @@ abstract class ProcessPageListRender extends Wire {
 	
 			// predefined format string
 			if($icon) $pageLabelField = str_replace(array("fa-$icon", "icon-$icon", "  "), array('', '', ' '), $pageLabelField);
-			$value = $page->getMarkup($pageLabelField);
 			// adjust string so that it'll work on a single line, without the markup in it
-			if(strpos($value, '</li>')) $value = preg_replace('!</li>\s*<li[^>]*>!', ', ', $value); 
-			$value = trim($this->wire('sanitizer')->entities1(strip_tags($value)));
+			$value = $page->getText($pageLabelField, true, true);
+			// if(strpos($value, '</li>')) $value = preg_replace('!</li>\s*<li[^>]*>!', ', ', $value); 
+			// $value = trim($this->wire('sanitizer')->entities($value));
 
 		} else {
 			

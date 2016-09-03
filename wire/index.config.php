@@ -1,14 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire multi-domain configuration file (optional)
  *
  * If used, this file should be copied/moved to the ProcessWire installation root directory.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  */
@@ -33,26 +30,22 @@ if(!defined("PROCESSWIRE")) die();
  *
  */
 function ProcessWireHostSiteConfig() {
-
-        return array(
-
-                /*
-                 * Some Examples (you should remove/replace them if used).
+	return array(
+		/*
+		 * Some Examples (you should remove/replace them if used).
 		 * Just note that the values must begin with 'site-'.
-                 *
-                 */
-                 'mydomain.com' => 'site-mydomain',
-                 'www.mydomain.com' => 'site-mydomain',
-                 'dev.mydomain.com' => 'site-dev',
-                 'www.otherdomain.com' => 'site-other',
+		 *
+		 */
+		 'mydomain.com' => 'site-mydomain',
+		 'www.mydomain.com' => 'site-mydomain',
+		 'dev.mydomain.com' => 'site-dev',
+		 'www.otherdomain.com' => 'site-other',
 
 		/*
 		 * Default for all others (typically /site/)
-	 	 *
+		 *
 		 */
 		'*' => 'site',
-
-                );
-
+	);
 }
 

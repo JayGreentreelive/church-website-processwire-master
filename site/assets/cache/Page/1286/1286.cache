@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<!--[if lt IE 9]> <html class="lt-ie9" lang="en"> <![endif]-->
+<!--[if !IE] -->
+<html lang='en'>
+  <!-- <![endif] -->
+  <head>
+
+    <title>Calendar</title>
+
+          
+    <meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport'>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="description" content="">
+    <meta name="author" content="Crosspointchurch.church">
+
+    
+    <link href='//fonts.googleapis.com/css?family=Noticia+Text:400,400italic,700,700italic|Open+Sans:100,200,300,400,600,700,800,400italic&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+   <!-- styles -->
+   <link rel="stylesheet" href="/site/assets/aiom/css_50c2c92d54706d95414ecbd0882ac07d.css">
+
+
+     
+     <script src="/site/assets/aiom/js_84adbcf4815375500563b9d894a3bcb0.js"></script>
+
+      <!--[if lt IE 9]>
+          <script type='text/javascript' src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+          <script type='text/javascript' src="//cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.min.js"></script>
+      <![endif]-->
+       <!--[if gte IE 9]>
+        <style type="text/css">.gradient,.gradient:after {filter: none; } </style>
+      <![endif]-->
+
+
+
+       <style>.top-home{background: #490b4d;}
+  </style>
+
+
+  </head>
+  <body >
+<div id='wrapper' class='page-id-1286 template-event-calendar  '>
+
+<div class='header   ' id='chapel-header-bar'>
+    <div id='search-area'>
+       <div class='container'>
+                <div class='row'>
+                    <div class='col-md-8 col-md-offset-2'>
+                          <div class="searchTop">
+                            
+                             <form id="search-form-top" class='clearfix' action='/search/' method='get'>
+                                    <input class="clear-click" id='search-site-input' placeholder='Search the site' type='text' name='q' value=''>
+                                    <a id="search_query_btn" href="javascript:void(0);" class="icon-right-4"></a>
+                            </form>
+
+                        </div>
+                  </div>
+                </div>
+           </div>
+  </div>
+
+
+
+
+
+  <div id='floating-bar-nav' >
+
+    
+       <div id='top-quick-menu' class=''>
+         <div class='container'>
+                <div class='row'>
+                    <div class='col-lg-12'>
+                          <div class="logo pull-left">
+                            <a href="/" class="crosspoint_logo" title='Cross Point Church'>
+                             <img id="logo-mark"  src='/site/templates/css/img/logo.gif'>
+
+                            </a>
+                          </div>
+                          <div class="top-nav-right pull-right">
+                            <a id='menu-btn'  title="Menu" ><span id='menu-btn-icon' class='icon-fw icon-menu-3'></span> Menu</a>
+                            <a id='search-btn' title="Search" ><span id='menu-search-btn-icon' class='icon-fw icon-zoom-2'></span><span class='hidden-xs'> Search</span></a>
+
+
+                          </div>
+                    </div>
+               </div>
+         </div>
+      </div>
+
+
+        <div id='nav-main-menu' class='nav-content-holder ' >
+            <div class='nav-top-border'></div>
+            <div class='container'>
+                <div class='row'>
+                    <div class='col-md-12'>
+
+                            <ul id="nav-pullout">
+                                <li id="nav_about" class='dropdown'><a href='#' id='about-nav' >About</a>
+                                  <ul >
+                                    <li ><a href='/about/staff/' >Staff  <span class="icon-right-circle-12"></span></a></li>
+                                    <li ><a href='/about/beliefs/' >Beliefs <span class="icon-right-circle-12"></span></a></li>
+                                    <li ><a href='/about/mission/' >Mission <span class="icon-right-circle-12"></span></a></li>
+
+                                  </ul>
+                                </li>
+                                <li id="nav_connect" class='dropdown'><a href='#' >Connect</a>
+                                  <ul>
+
+                                    <li ><a href='/events/' >Events <span class="icon-right-circle-12"></span></a></li>
+                                    <li ><a href='/serve/' >Serve <span class="icon-right-circle-12"></span></a></li>
+
+                                     <li ><a href='/baptism-membership/' >Multi-section <span class="icon-right-circle-12"></span></a></li>
+
+
+                                  </ul>
+                                </li>
+                                <li id="nav_outreach" class='dropdown'><a href='#' >Give</a>
+                                   <ul>
+                                    <li ><a href='/give/why-we-give/' >Why We Give <span class="icon-right-circle-12"></span></a></li>
+                                    <li ><a href='#'>Give Now <span class="icon-right-circle-12"></span></a></li>
+
+                                  </ul>
+                                </li>
+                                <li id="nav_resources" class='dropdown'><a href='#' >Resources</a>
+                                  <ul>
+                                     <li ><a href='/sermons/' >Sermons <span class="icon-right-circle-12"></span></a></li>
+                                     <li ><a href='/blog/' >Blog <span class="icon-right-circle-12"></span></a></li>
+                                     <li ><a href='/stories/' >Stories <span class="icon-right-circle-12"></span></a></li>
+                                  </ul>
+                                </li>
+
+
+                              </ul>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+  </div>
+
+
+
+
+
+  <div id='top-area' class='top-home  top-short-header  ' >
+
+    <div class='top-cover-gradient-fromtop gradient'></div>
+    <div class='top-cover-gradient-frombot gradient '></div>
+
+      
+      </div> <!-- end top-area -->
+</div> <!-- end header -->
+
+<div id='main' role='main'>
+
+
+<div class='container mg-t-lg mg-b-lg serif'>
+<div class='row'>
+    <div class='col-md-12'>
+        <h1 class='mg-b-md'>Event Calendar</h1>
+        <p><a href='/events/' class='btn btn-default'><i class='icon-menu-list-1'></i> Events List</a> </p>
+         <hr class='thin-hr'>
+<div class='visible-xs'>
+              <h4>View events on our <a href='/events/'>list view.</a></h4>
+</div>
+
+ <div id='calendar-holder' class='hidden-xs'>
+
+    
+    <div id="month1" class='list-month-cal'>
+
+
+
+       <div class='list-controls' style=' margin:10px 0px 30px 0px;'>
+                        <div class='list-event-prev '  ><i class='icon-left-4'></i></div>
+                        <h2 class='list-month-title'>September</h2>
+                        <div class='list-event-next '><i class='icon-right-4'></i></div>
+                        <div class='clearfix clear'></div>
+                    </div>
+          <div class=' clearfix clear'></div>
+    <table class="calendar" id="monthTable1">
+
+      <tr>
+                        <th title="Sunday">Sunday</th>
+                         <th title="Monday">Monday</th>
+                         <th title="Tuesday">Tuesday</th>
+                         <th title="Wednesday">Wednesday</th>
+                         <th title="Thursday">Thursday</th>
+                         <th title="Friday">Friday</th>
+                         <th title="Saturday">Saturday</th>
+               </tr>
+
+      
+        <tr>
+                            <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>1</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>2</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number today'>3</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>4</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-09-04-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>5</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>6</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>7</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>8</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>9</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>10</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>11</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-09-11-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>12</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>13</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>14</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>15</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>16</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>17</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>18</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-09-18-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>19</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>20</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>21</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>22</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>23</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>24</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>25</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-09-25-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>26</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>27</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>28</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>29</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>30</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                    </td>
+                                     </tr>
+
+    
+     </table>
+    </div>
+
+  
+    <div id="month2" class='list-month-cal'>
+
+
+
+       <div class='list-controls' style=' margin:10px 0px 30px 0px;'>
+                        <div class='list-event-prev '  ><i class='icon-left-4'></i></div>
+                        <h2 class='list-month-title'>October</h2>
+                        <div class='list-event-next '><i class='icon-right-4'></i></div>
+                        <div class='clearfix clear'></div>
+                    </div>
+          <div class=' clearfix clear'></div>
+    <table class="calendar" id="monthTable2">
+
+      <tr>
+                        <th title="Sunday">Sunday</th>
+                         <th title="Monday">Monday</th>
+                         <th title="Tuesday">Tuesday</th>
+                         <th title="Wednesday">Wednesday</th>
+                         <th title="Thursday">Thursday</th>
+                         <th title="Friday">Friday</th>
+                         <th title="Saturday">Saturday</th>
+               </tr>
+
+      
+        <tr>
+                            <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>1</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>2</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-10-02-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>3</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>4</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>5</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>6</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>7</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>8</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>9</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-10-09-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>10</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>11</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>12</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>13</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>14</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>15</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>16</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-10-16-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>17</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>18</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>19</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>20</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>21</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>22</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>23</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-10-23-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>24</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>25</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>26</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>27</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>28</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>29</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>30</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-10-30-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>31</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                     </tr>
+
+    
+     </table>
+    </div>
+
+  
+    <div id="month3" class='list-month-cal'>
+
+
+
+       <div class='list-controls' style=' margin:10px 0px 30px 0px;'>
+                        <div class='list-event-prev '  ><i class='icon-left-4'></i></div>
+                        <h2 class='list-month-title'>November</h2>
+                        <div class='list-event-next '><i class='icon-right-4'></i></div>
+                        <div class='clearfix clear'></div>
+                    </div>
+          <div class=' clearfix clear'></div>
+    <table class="calendar" id="monthTable3">
+
+      <tr>
+                        <th title="Sunday">Sunday</th>
+                         <th title="Monday">Monday</th>
+                         <th title="Tuesday">Tuesday</th>
+                         <th title="Wednesday">Wednesday</th>
+                         <th title="Thursday">Thursday</th>
+                         <th title="Friday">Friday</th>
+                         <th title="Saturday">Saturday</th>
+               </tr>
+
+      
+        <tr>
+                            <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>1</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>2</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>3</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>4</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>5</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>6</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-11-06-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>7</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>8</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>9</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>10</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>11</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>12</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>13</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-11-13-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>14</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>15</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>16</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>17</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>18</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>19</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>20</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-11-20-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>21</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>22</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>23</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>24</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>25</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>26</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>27</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-11-27-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>28</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>29</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>30</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                     </tr>
+
+    
+     </table>
+    </div>
+
+  
+    <div id="month4" class='list-month-cal'>
+
+
+
+       <div class='list-controls' style=' margin:10px 0px 30px 0px;'>
+                        <div class='list-event-prev '  ><i class='icon-left-4'></i></div>
+                        <h2 class='list-month-title'>December</h2>
+                        <div class='list-event-next '><i class='icon-right-4'></i></div>
+                        <div class='clearfix clear'></div>
+                    </div>
+          <div class=' clearfix clear'></div>
+    <table class="calendar" id="monthTable4">
+
+      <tr>
+                        <th title="Sunday">Sunday</th>
+                         <th title="Monday">Monday</th>
+                         <th title="Tuesday">Tuesday</th>
+                         <th title="Wednesday">Wednesday</th>
+                         <th title="Thursday">Thursday</th>
+                         <th title="Friday">Friday</th>
+                         <th title="Saturday">Saturday</th>
+               </tr>
+
+      
+        <tr>
+                            <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>1</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>2</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>3</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>4</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-12-04-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>5</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>6</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>7</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>8</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>9</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>10</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>11</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-12-11-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>12</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>13</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>14</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>15</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>16</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>17</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>18</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-12-18-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>19</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>20</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>21</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>22</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>23</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>24</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/christmas-eve/' data-placement='left' data-toggle="popover" title="Christmas Eve Service" data-content="<span class='text-muted'>Saturday, December 24, 2016, 6:00 PM - 8:00 PM</span><span class='span-block mg-t-xs'>Meadowville Campus - Worship Center</span>">Christmas Eve Service </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>25</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2016-12-25-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>26</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>27</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>28</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>29</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>30</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>31</span>
+                                                            </td>
+                                     </tr>
+
+    
+     </table>
+    </div>
+
+  
+    <div id="month5" class='list-month-cal'>
+
+
+
+       <div class='list-controls' style=' margin:10px 0px 30px 0px;'>
+                        <div class='list-event-prev '  ><i class='icon-left-4'></i></div>
+                        <h2 class='list-month-title'>January</h2>
+                        <div class='list-event-next '><i class='icon-right-4'></i></div>
+                        <div class='clearfix clear'></div>
+                    </div>
+          <div class=' clearfix clear'></div>
+    <table class="calendar" id="monthTable5">
+
+      <tr>
+                        <th title="Sunday">Sunday</th>
+                         <th title="Monday">Monday</th>
+                         <th title="Tuesday">Tuesday</th>
+                         <th title="Wednesday">Wednesday</th>
+                         <th title="Thursday">Thursday</th>
+                         <th title="Friday">Friday</th>
+                         <th title="Saturday">Saturday</th>
+               </tr>
+
+      
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>1</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2017-01-01-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>2</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>3</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>4</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>5</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>6</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>7</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>8</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2017-01-08-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>9</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>10</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>11</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>12</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>13</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>14</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>15</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2017-01-15-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>16</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>17</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>18</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>19</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>20</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>21</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>22</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2017-01-22-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>23</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>24</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>25</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>26</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>27</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>28</span>
+                                                            </td>
+                                     </tr>
+
+    
+        <tr>
+                            <td class="linked-day">
+                                            <span class='calendar-day-number '>29</span>
+                                                    <ul>
+                                                            <li>
+                                    <a href='/events/sample-recurring-event/2017-01-29-sample-recurring-event/' data-placement='right' data-toggle="popover" title="Sample Recurring Event" data-content="<span class='text-muted'>Every Sunday, 11:30 AM - 12:30 PM</span><span class='span-block mg-t-xs'>Gilroy Campus - Family Room</span>">Sample Recurring Event </a>
+                                </li>
+                                                    </ul>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>30</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                            <span class='calendar-day-number '>31</span>
+                                                            </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                             <td class="linked-day">
+                                    </td>
+                                     </tr>
+
+    
+     </table>
+    </div>
+
+  
+
+
+
+</div> <!-- end calendar-holder -->
+
+
+</div>
+</div>
+
+</div>
+
+
+
+
+
+
+    </div>   <!-- end Main -->
+
+
+     <div id='footer-social-bar'>
+            <div class='container'>
+                <div class='row'>
+                  <div class='col-xs-6 col-md-10 col-sm-9' >
+
+                          <div class='item'><a href='#'>Share Your Story</a></div>
+                          <div class='item'><a href="#">716.555.1234</a></div>
+                          <div class='item'><a href='#'>info@crosspointchurch.church</a></div>
+                  </div>
+                  <div class='col-xs-6 col-md-2 col-sm-3' >
+                        <div class='pull-right'>
+                           <a target="_blank" href='https://facebook.com' class='social-fb'><i class="icon-facebook  "></i></a>
+                           <a target="_blank" href='https://twitter.com' class='social-tw'><i class="icon-twitter"></i></a>
+                           <a target="_blank" href='https://instagram.com' class='social-in'><i class="icon-instagram "></i></a>
+                           <a target="_blank" href='https://youtube.com' class='social-yt'><i class="icon-youtube "></i></a>
+                        </div>
+                  </div>
+              </div>
+          </div>
+    </div>
+
+
+    <!-- FOOTER -->
+    <div id='footer'>
+       <div class='container '>
+
+
+              <div class='row mg-t-md mg-b-md'>
+                  <div class='col-md-12'>
+
+                    <p>&copy; 2016 Cross Point Church
+
+                      </p>
+                  </div>
+              </div>
+          </div>
+    </div>
+
+
+    <!-- window resize helper -->
+    <span id="mq-detector">
+        <span class="visible-xs"></span>
+        <span class="visible-sm"></span>
+        <span class="visible-md"></span>
+        <span class="visible-lg"></span>
+    </span>
+
+
+
+ </div> <!-- / wrapper -->
+
+  <!-- Javascript
+    ================================================== -->
+  
+     <script src="/site/assets/aiom/js_34e80e429034c303450d2b1ca52fcc32.js"></script>
+
+
+
+    <script>
+
+$(document).ready(function(){
+
+  /* List View */
+  //initialize list view
+  $('.list-controls').show();
+  $('.list-month-cal').hide();
+  $('.list-month-cal:eq(0)').addClass('active').show();
+
+  //handle controls
+  $('.list-month-cal').each(function(){
+    if($(this).prev('.list-month-cal').length > 0){
+      $(this).find('.list-event-prev').addClass('hasPrev');
+    }
+  });
+  $('.list-month-cal').each(function(){
+    if($(this).next('.list-month-cal').length > 0){
+      $(this).find('.list-event-next').addClass('hasNext');
+    }
+  });
+
+  $('.list-event-prev').on('click',function(e){
+
+    if($('.list-month-cal.active').prev('.list-month-cal').length > 0){
+      $('.list-month-cal.active').removeClass('active').hide().prev('.list-month-cal').addClass('active').show();
+    }
+    e.preventDefault();
+  });
+
+  $('.list-event-next').on('click',function(e){
+
+    if($('.list-month-cal.active').next('.list-month-cal').length > 0){
+      $('.list-month-cal.active').removeClass('active').hide().next('.list-month-cal').addClass('active').show();
+    }
+    e.preventDefault();
+  });
+
+
+  $('[data-toggle="popover"]').popover({html:true, trigger:'hover'});
+
+});
+
+
+</script>
+    
+
+  </body></html>

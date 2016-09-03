@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Class MarkupFieldtype
@@ -8,10 +8,6 @@
  * just provides generic rendering for various differnet types,
  * accommodating just about any Fieldtype. But it is built to be
  * extended for more specific needs in various Fieldtypes. 
- * 
- * ProcessWire 2.x
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
  * USAGE:
  * 
@@ -87,7 +83,7 @@ class MarkupFieldtype extends WireData implements Module {
 	 * 
 	 */
 	public function render($property = '') {
-		
+	
 		$value = $this->getValue(); 
 		
 		if($property) {
@@ -112,6 +108,14 @@ class MarkupFieldtype extends WireData implements Module {
 				} else if($value instanceof WireArray) {
 					// WireArray object: get array of property value from each item
 					$value = $value->explode($property);
+					$valid = true;
+
+				} else if($value instanceof Page) {
+					// Page object
+					$page = $value;
+					$value = $page->getFormatted($property);
+					$field = $this->wire('fields')->get($property);
+					if($field && $field->type) return $field->type->markupValue($page, $field, $value);
 					$valid = true;
 					
 				} else if($value instanceof WireData) {
@@ -161,7 +165,7 @@ class MarkupFieldtype extends WireData implements Module {
 	 * 
 	 * Classes descending from MarkupFieldtype this would implement their own method. 
 	 * 
-	 * @param $value The unformatted value to render. 
+	 * @param mixed $value The unformatted value to render. 
 	 * @return string
 	 * 
 	 */
@@ -263,9 +267,8 @@ class MarkupFieldtype extends WireData implements Module {
 		if($value instanceof Pagefiles || $value instanceof Pagefile) {
 			$out = $this->renderInputfieldValue($value);
 		} else {
-			$className = get_class($value);
 			$out = (string) $value;
-			if($out === $className) {
+			if($out === wireClassName($value, false) || $out === wireClassName($value, true)) {
 				// just the class name probably isn't useful here, see if we can do do something else with it
 				$this->renderIsUseless = true;
 			}
@@ -291,10 +294,24 @@ class MarkupFieldtype extends WireData implements Module {
 		$inputfield->attr('value', $value);
 		if(method_exists($inputfield, 'setField')) $inputfield->setField($field);
 		if(method_exists($inputfield, 'setPage')) $inputfield->setPage($page);
-		$wrapper = new InputfieldWrapper();
-		$wrapper->quietMode = true; 
-		$wrapper->add($inputfield);
-		$out = $wrapper->renderValue();
+		if($inputfield->renderValueFlags & Inputfield::renderValueNoWrap) {
+			$inputfield->renderReady(null, true);
+			$out = $inputfield->renderValue();
+			$inputfield->addClass('InputfieldRenderValueMode', 'wrapClass');
+			if($inputfield->renderValueFlags & Inputfield::renderValueMinimal) {
+				$inputfield->addClass('InputfieldRenderValueMinimal', 'wrapClass');
+			}
+			if($inputfield->renderValueFlags & Inputfield::renderValueFirst) {
+				$inputfield->addClass('InputfieldRenderValueFirst', 'wrapClass');
+			}
+			$out = "<div class='$inputfield->wrapClass'>$out</div>";
+		} else {
+			/** @var InputfieldWrapper $wrapper */
+			$wrapper = $this->wire(new InputfieldWrapper());
+			$wrapper->quietMode = true;
+			$wrapper->add($inputfield);
+			$out = $wrapper->renderValue();
+		}
 		return $out; 	
 	}
 
@@ -310,7 +327,7 @@ class MarkupFieldtype extends WireData implements Module {
 	
 	public function setPage(Page $page) { $this->_page = $page;  }
 	public function setField(Field $field) { $this->_field = $field;  }
-	public function getPage() { return $this->_page ? $this->_page : new NullPage(); }
+	public function getPage() { return $this->_page ? $this->_page : $this->wire('pages')->newNullPage(); }
 	public function getField() { return $this->_field; }
 
 	/**

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Field
@@ -6,31 +6,34 @@
  * The Field class corresponds to a record in the fields database table 
  * and is managed by the 'Fields' class.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * #pw-summary Field represents a custom field that is used on a Page.
+ * #pw-body Field objects are managed by the `$fields` API variable. 
+ * #pw-use-constants
  * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
- * @property int $id
- * @property string $name
- * @property string $table
- * @property string $prevTable
- * @property Fieldtype|null $type
- * @property Fieldtype $prevFieldtype
- * @property int $flags
- * @property string $label
- * @property string $description
- * @property string $notes
- * @property string $icon
- * @property bool $useRoles Whether or not access control is enabled (same as $field->flags & Field::flagAccess)
- * @property array $editRoles Role IDs with edit access, applicable only if $field->useRoles is true.
- * @property array $viewRoles Role IDs with view access, applicable only if $field->useRoles is true.
+ * @property int $id Numeric ID of field in the database #pw-group-properties
+ * @property string $name Name of field  #pw-group-properties
+ * @property string $table Database table used by the field #pw-group-properties
+ * @property string $prevTable Previously database table (if field was renamed) #pw-group-properties
+ * @property Fieldtype|null $type Fieldtype module that represents the type of this field #pw-group-properties
+ * @property Fieldtype $prevFieldtype Previous Fieldtype, of type was changed #pw-group-properties
+ * @property int $flags Bitmask of flags used by this field #pw-group-properties
+ * @property string $label Text string representing the label of the field #pw-group-properties
+ * @property string $description Longer description text for the field #pw-group-properties
+ * @property string $notes Additional notes text about the field #pw-group-properties
+ * @property string $icon Icon name used by the field, if applicable #pw-group-properties
+ * @property bool $useRoles Whether or not access control is enabled #pw-group-access
+ * @property array $editRoles Role IDs with edit access, applicable only if access control is enabled. #pw-group-access
+ * @property array $viewRoles Role IDs with view access, applicable only if access control is enabled. #pw-group-access
+ * @property array|null $orderByCols Columns that WireArray values are sorted by (default=null), Example: "sort" or "-created". #pw-internal
+ * @property int|null $paginationLimit Used by paginated WireArray values to indicate limit to use during load. #pw-internal
  * 
- * @method bool viewable(Page $page = null, User $user = null)
- * @method bool editable(Page $page = null, User $user = null)
- * @method Inputfield getInputfield(Page $page, $contextStr = '')
- * @method InputfieldWrapper getConfigInputfields()
+ * @method bool viewable(Page $page = null, User $user = null) Is the field viewable on the given $page by the given $user? #pw-group-access
+ * @method bool editable(Page $page = null, User $user = null) Is the field editable on the given $page by the given $user? #pw-group-access
+ * @method Inputfield getInputfield(Page $page, $contextStr = '') Get instance of the Inputfield module that collects input for this field. 
+ * @method InputfieldWrapper getConfigInputfields() Get Inputfields needed to configure this field in the admin. 
  * 
  * @todo add modified date property
  *
@@ -39,30 +42,35 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Field should be automatically joined to the page at page load time
+	 * #pw-group-flags
 	 *
 	 */
 	const flagAutojoin = 1;
 
 	/**
 	 * Field used by all fieldgroups - all fieldgroups required to contain this field
+	 * #pw-group-flags
 	 *
 	 */
 	const flagGlobal = 4;
 
 	/**
 	 * Field is a system field and may not be deleted, have it's name changed, or be converted to non-system
+	 * #pw-group-flags
 	 *
 	 */
 	const flagSystem = 8;
 
 	/**
 	 * Field is permanent in any fieldgroups/templates where it exists - it may not be removed from them
+	 * #pw-group-flags
 	 *
 	 */
 	const flagPermanent = 16;
 
 	/**
 	 * Field is access controlled
+	 * #pw-group-flags
 	 *
 	 */
 	const flagAccess = 32;
@@ -70,7 +78,8 @@ class Field extends WireData implements Saveable, Exportable {
 	/**
 	 * If field is access controlled, this flag says that values are still front-end API accessible
 	 * 
-	 * Without this flag, non-viewable values are made blank when output formatting is ON. 
+	 * Without this flag, non-viewable values are made blank when output formatting is ON.
+	 * #pw-group-flags
 	 * 
 	 */
 	const flagAccessAPI = 64;
@@ -78,22 +87,32 @@ class Field extends WireData implements Saveable, Exportable {
 	/**
 	 * If field is access controlled and user has no edit access, they can still view in the editor (if they have view permission)
 	 * 
-	 * Without this flag, non-editable values are simply not shown in the editor at all. 
+	 * Without this flag, non-editable values are simply not shown in the editor at all.
+	 * #pw-group-flags
 	 * 
 	 */
 	const flagAccessEditor = 128; 
 
 	/**
 	 * Field has been placed in a runtime state where it is contextual to a specific fieldgroup and is no longer saveable
+	 * #pw-group-flags
 	 *
 	 */
 	const flagFieldgroupContext = 2048;
 
 	/**
 	 * Set this flag to override system/permanent flags if necessary - once set, system/permanent flags can be removed, but not in the same set().
+	 * #pw-group-flags
 	 *
 	 */
 	const flagSystemOverride = 32768;
+
+	/**
+	 * Prefix for database tables
+	 * #pw-internal
+	 * 
+	 */
+	const tablePrefix = 'field_';
 
 	/**
 	 * Permanent/native settings to an individual Field
@@ -119,6 +138,14 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	protected $prevTable;
+
+	/**
+	 * A specifically set table name by setTable() for override purposes
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $setTable = '';
 
 	/**
 	 * If the field type changed, this is the previous fieldtype so that it can be changed at save time
@@ -158,6 +185,16 @@ class Field extends WireData implements Saveable, Exportable {
 	protected $editRoles = array();
 
 	/**
+	 * Optional key=value runtime settings to provide to Inputfield (see: inputfieldSetting method)
+	 * 
+	 * This are runtime only and not stored in the DB.
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $inputfieldSettings = array();
+
+	/**
 	 * True if lowercase tables should be enforce, false if not (null = unset). Cached from $config
 	 *
 	 */
@@ -166,11 +203,14 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Set a native setting or a dynamic data property for this Field
+	 * 
+	 * This can also be used directly via `$field->name = 'company';`
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param string $key
+	 * @param string $key Property name to set
 	 * @param mixed $value
-	 *
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function set($key, $value) {
@@ -220,8 +260,8 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Set the flags field, ensuring a system flag remains set
-	 *
+	 * Set the bitmask of flags for the field
+	 * 
 	 * @param int $value
 	 *
 	 */
@@ -237,7 +277,9 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Add the given flag
+	 * Add the given bitmask flag
+	 * 
+	 * #pw-group-flags
 	 * 
 	 * @param int $flag
 	 * @return $this
@@ -250,9 +292,11 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Remove the given flag
+	 * Remove the given bitmask flag
 	 * 
-	 * @param $flag
+	 * #pw-group-flags
+	 * 
+	 * @param int $flag
 	 * @return $this
 	 * 
 	 */
@@ -263,7 +307,9 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Does this field have the given flag?
+	 * Does this field have the given bitmask flag?
+	 * 
+	 * #pw-group-flags
 	 * 
 	 * @param int $flag
 	 * @return bool
@@ -276,9 +322,12 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Get a Field setting or dynamic data property
+	 * 
+	 * This can also be accessed directly, i.e. `$fieldName = $field->name;`. 
+	 * 
+	 * #pw-group-retrieval
 	 *
 	 * @param string $key
-	 *
 	 * @return mixed
 	 *
 	 */
@@ -299,7 +348,9 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Turn on tracking for accessed properties
+	 * Turn on tracking of accessed properties
+	 * 
+	 * #pw-internal
 	 *
 	 * @param bool|string $key
 	 *    Omit to retrieve current trackGets value.
@@ -330,7 +381,9 @@ class Field extends WireData implements Saveable, Exportable {
 
 
 	/**
-	 * Return a key=>value array of the data associated with the database table per Saveable interface
+	 * Return a key=value array of the data associated with the database table per Saveable interface
+	 * 
+	 * #pw-internal
 	 *
 	 * @return array
 	 *
@@ -353,6 +406,8 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Per Saveable interface: return data for external storage
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getExportData() {
@@ -388,9 +443,10 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Given an export data array, import it back to the class and return what happened
+	 * 
+	 * #pw-internal
 	 *
 	 * @param array $data
-	 *
 	 * @return array Returns array(
 	 *    [property_name] => array(
 	 *
@@ -453,25 +509,32 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Set the field's name
+	 * Set the field’s name
+	 * 
+	 * This method will throw a WireException when field name is a reserved word, is already in use, 
+	 * is a system field, or is in some format not accepted for a field name.
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @param string $name
-	 *
 	 * @return Field $this
-	 * @throws WireException
+	 * @throws WireException 
 	 *
 	 */
 	public function setName($name) {
-		$name = $this->fuel('sanitizer')->fieldName($name);
+		$name = $this->wire('sanitizer')->fieldName($name);
 
-		if(Fields::isNativeName($name))
+		if($this->wire('fields')->isNative($name)) {
 			throw new WireException("Field may not be named '$name' because it is a reserved word");
+		}
 
-		if($this->fuel('fields') && ($f = $this->fuel('fields')->get($name)) && $f->id != $this->id)
+		if($this->wire('fields') && ($f = $this->wire('fields')->get($name)) && $f->id != $this->id) {
 			throw new WireException("Field may not be named '$name' because it is already used by another field");
+		}
 
-		if(strpos($name, '__') !== false)
+		if(strpos($name, '__') !== false) {
 			throw new WireException("Field name '$name' may not have double underscores because this usage is reserved by the core");
+		}
 
 		if($this->settings['name'] != $name) {
 			if($this->settings['name'] && ($this->settings['flags'] & Field::flagSystem)) {
@@ -482,16 +545,16 @@ class Field extends WireData implements Saveable, Exportable {
 		}
 
 		$this->settings['name'] = $name;
+		
 		return $this;
 	}
 
 	/**
-	 * Set what type of field this is.
+	 * Set what type of field this is (Fieldtype). 
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * Type should be either a Fieldtype object or the string name of a Fieldtype object.
-	 *
-	 * @param string|Fieldtype $type
-	 *
+	 * @param string|Fieldtype $type Type should be either a Fieldtype object or the string name of a Fieldtype object.
 	 * @return Field $this
 	 * @throws WireException
 	 *
@@ -503,7 +566,7 @@ class Field extends WireData implements Saveable, Exportable {
 
 		} else if(is_string($type)) {
 			$typeStr = $type;
-			$fieldtypes = $this->fuel('fieldtypes');
+			$fieldtypes = $this->wire('fieldtypes');
 			if(!$type = $fieldtypes->get($type)) {
 				$this->error("Fieldtype '$typeStr' does not exist");
 				return $this;
@@ -522,13 +585,29 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Set the roles that are allowed to view or edit this field on pages
+	 * Return the Fieldtype module representing this field’s type.
+	 * 
+	 * Can also be accessed directly via `$field->type`. 
+	 * 
+	 * #pw-group-retrieval
+	 * 
+	 * @return Fieldtype|null
+	 * @since 3.0.16 Added for consistency, but all versions can still use $field->type. 
+	 * 
+	 */
+	public function getFieldtype() {
+		return $this->type; 
+	}
+
+	/**
+	 * Set the roles that are allowed to view or edit this field on pages.
 	 *
-	 * Applicable only if the flagAccess is set to this field's flags.
+	 * Applicable only if the `Field::flagAccess` is set to this field's flags.
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @param string $type Must be either "view" or "edit"
-	 * @param PageArray|array|null $roles May be a PageArray of Role objects or an array of Role IDs
-	 *
+	 * @param PageArray|array|null $roles May be a PageArray of Role objects or an array of Role IDs.
 	 * @throws WireException if given invalid argument
 	 *
 	 */
@@ -565,16 +644,17 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Is this field viewable?
+	 * 
+	 * #pw-group-access
 	 *
-	 * 1. To maximize efficiency check that $field->useRoles is true before calling this.  
-	 * 2. If you have already verified that the page is viewable, omit or specify null for $page argument.
+	 * - To maximize efficiency check that `$field->useRoles` is true before calling this.  
+	 * - If you have already verified that the page is viewable, omit or specify null for $page argument.
+	 * - **Please note:** this does not check that the provided $page itself is viewable. If you want that 
+	 *   check, then use `$page->viewable($field)` instead.
 	 * 
-	 * PLEASE NOTE: this does not check that the provided $page itself is viewable.
-	 * If you want that check, then use $page->viewable($field) instead.
-	 * 
-	 * @param Page|null $page Optionally specify a Page for context
-	 * @param User|null $user Optionally specify a different user (default = current user)
-	 * @return bool
+	 * @param Page|null $page Optionally specify a Page for context (i.e. Is field viewable on $page?)
+	 * @param User|null $user Optionally specify a different user for context (default=current user)
+	 * @return bool True if viewable, false if not
 	 * 
 	 */
 	public function ___viewable(Page $page = null, User $user = null) {
@@ -584,11 +664,12 @@ class Field extends WireData implements Saveable, Exportable {
 	/**
 	 * Is this field editable?
 	 * 
-	 * 1. To maximize efficiency check that $field->useRoles is true before calling this.
-	 * 2. If you have already verified that the page is viewable, omit or specify null for $page argument.
+	 * - To maximize efficiency check that `$field->useRoles` is true before calling this.
+	 * - If you have already verified that the page is editable, omit or specify null for $page argument.
+	 * - **Please note:** this does not check that the provided $page itself is editable. If you want that 
+	 *   check, then use `$page->editable($field)` instead.
 	 * 
-	 * PLEASE NOTE: this does not check that the provided $page itself is editable.
-	 * If you want that check, then use $page->editable($field) instead.
+	 * #pw-group-access
 	 *
 	 * @param Page|string|int|null $page Optionally specify a Page for context
 	 * @param User|string|int|null $user Optionally specify a different user (default = current user)
@@ -600,21 +681,29 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 	
 	/**
-	 * Save this field's settings and data in the database. 
+	 * Save this field’s settings and data in the database. 
 	 *
-	 * To hook ___save, use Fields::save instead
+	 * To hook this save, hook to `Fields::save()` instead.
+	 * 
+	 * #pw-group-manipulation
+	 * 
+	 * @return bool
 	 *
 	 */
 	public function save() {
-		$fields = $this->getFuel('fields'); 
+		$fields = $this->wire('fields'); 
 		return $fields->save($this); 
 	}
 
 
 	/**
-	 * Return the number of fieldsets this field is used in
+	 * Return the number of Fieldgroups this field is used in.
 	 *
-	 * Primarily used to check if the Field is deleteable. 
+	 * Primarily used to check if the Field is deletable. 
+	 * 
+	 * #pw-group-retrieval
+	 * 
+	 * @return int
 	 *
 	 */ 
 	public function numFieldgroups() {
@@ -622,14 +711,16 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Return a FieldgroupArray of Fieldgroups using this field
+	 * Return the list of Fieldgroups using this field.
+	 * 
+	 * #pw-group-retrieval
 	 *
-	 * @return FieldgroupsArray
+	 * @return FieldgroupsArray WireArray of Fieldgroup objects. 
 	 *
 	 */ 
 	public function getFieldgroups() {
-		$fieldgroups = new FieldgroupsArray();
-		foreach($this->fuel('fieldgroups') as $fieldgroup) {
+		$fieldgroups = $this->wire(new FieldgroupsArray());
+		foreach($this->wire('fieldgroups') as $fieldgroup) {
 			foreach($fieldgroup as $field) {
 				if($field->id == $this->id) {
 					$fieldgroups->add($fieldgroup); 
@@ -641,13 +732,15 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Return a TemplatesArray of Templates using this field
+	 * Return the list of of Templates using this field.
+	 * 
+	 * #pw-group-retrieval
 	 *
-	 * @return TemplatesArray
+	 * @return TemplatesArray WireArray of Template objects. 
 	 *
 	 */ 
 	public function getTemplates() {
-		$templates = new TemplatesArray();
+		$templates = $this->wire(new TemplatesArray());
 		$fieldgroups = $this->getFieldgroups();
 		foreach($this->templates as $template) {
 			foreach($fieldgroups as $fieldgroup) {
@@ -664,6 +757,8 @@ class Field extends WireData implements Saveable, Exportable {
 	/**
 	 * Return the default value for this field (if set), or null otherwise. 
 	 * 
+	 * #pw-internal
+	 * 
 	 * @deprecated Use $field->type->getDefaultValue($page, $field) instead. 
 	 *
 	 */
@@ -671,14 +766,15 @@ class Field extends WireData implements Saveable, Exportable {
 		$value = $this->get('default'); 
 		if($value) return $value; 
 		return null;
-		
 	}
 
 	/**
-	 * Get the Inputfield object associated with this Field's Fieldtype
-	 *
-	 * @param Page $page
-	 * @param string $contextStr Optional context string to append to the Inputfield's name/id
+	 * Get the Inputfield module used to collect input for this field.
+	 * 
+	 * #pw-group-retrieval
+	 * 
+	 * @param Page $page Page that the Inputfield is for. 
+	 * @param string $contextStr Optional context string to append to the Inputfield's name/id (for repeaters and such). 
 	 * @return Inputfield|null 
 	 *
 	 */
@@ -704,14 +800,19 @@ class Field extends WireData implements Saveable, Exportable {
 
 		// predefined field settings
 		$inputfield->attr('name', $this->name . $contextStr); 
-		$inputfield->label = $this->label;
+		$inputfield->set('label', $this->label);
 
 		// just in case an Inputfield needs to know it's Fieldtype context, or lack of it
-		$inputfield->hasFieldtype = $this->type; 
-
+		$inputfield->set('hasFieldtype', $this->type); 
+		
 		// custom field settings
 		foreach($this->data as $key => $value) {
-			if($inputfield->has($key)) {
+			if($inputfield instanceof InputfieldWrapper) {
+				$has = $inputfield->hasSetting($key) || $inputfield->hasAttribute($key);
+			} else {
+				$has = $inputfield->has($key);
+			}
+			if($has) {
 				if(is_array($this->trackGets)) $this->trackGets($key); 
 				$inputfield->set($key, $value); 
 			}
@@ -722,7 +823,7 @@ class Field extends WireData implements Saveable, Exportable {
 			$inputfield->collapsed = Inputfield::collapsedHidden;
 		} else if($locked) {
 			// Inputfield is locked as a result of access control
-			$collapsed = $inputfield->collapsed; 
+			$collapsed = $inputfield->getSetting('collapsed'); 
 			$ignoreCollapsed = array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked, Inputfield::collapsedHidden);
 			if(!in_array($collapsed, $ignoreCollapsed)) {
 				// Inputfield is not already locked or hidden, convert to locked equivalent
@@ -736,19 +837,70 @@ class Field extends WireData implements Saveable, Exportable {
 				$inputfield->collapsed = $collapsed;
 			}
 		}
+	
+		if(count($this->inputfieldSettings)) {
+			// runtime-only settings to Inputfield (these are not stored in DB)
+			foreach($this->inputfieldSettings as $name => $value) {
+				$inputfield->set($name, $value);
+			}
+		}
+		
+		if($contextStr) {
+			// update dependency strings for the context 
+			foreach(array('showIf', 'requiredIf') as $depType) {
+				$theIf = $inputfield->getSetting($depType);
+				if(empty($theIf)) continue;
+				$inputfield->set($depType, preg_replace('/([_.|a-zA-Z0-9]+)([=!%*<>]+)/', '$1' . $contextStr . '$2', $theIf));
+			}
+		}
 
 		return $inputfield; 
 	}
 
 	/**
-	 * Get any configuration fields associated with the Inputfield
+	 * Get or set a runtime-only setting that will be sent to the Inputfield during the getInputfield() call
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param string $name Specify setting name to get or set, or '*' to get all.
+	 * @param null|mixed $value Specify value, or 'clear' to clear setting(s) described in $name argument.
+	 * @return null|array|bool|mixed Returns setting value, null if not found, true if set or clear requested, or array if all settings requested.
+	 * 
+	 */
+	public function inputfieldSetting($name, $value = null) {
+		if($name === '*') {
+			// get or clear ALL settings
+			if($value === 'clear') {
+				$this->inputfieldSettings = array();
+				return true;
+			} else {
+				return $this->inputfieldSettings;
+			}
+		} else if(is_null($value)) {
+			// get a setting, or return null if not found
+			return isset($this->inputfieldSettings[$name]) ? $this->inputfieldSettings[$name] : null;
+		} else if($value === 'clear') {
+			// clear a setting
+			unset($this->inputfieldSettings[$name]);	
+			return true;
+		} else {
+			// set a named setting
+			$this->inputfieldSettings[$name] = $value;
+			return true;
+		}
+	}
+
+	/**
+	 * Get any Inputfields needed to configure the field in the admin.
+	 * 
+	 * #pw-group-retrieval
 	 *
 	 * @return InputfieldWrapper
 	 *
 	 */
 	public function ___getConfigInputfields() {
 
-		$wrapper = new InputfieldWrapper();
+		$wrapper = $this->wire(new InputfieldWrapper());
 		$fieldgroupContext = $this->flags & Field::flagFieldgroupContext; 
 		
 		if($fieldgroupContext) {
@@ -760,16 +912,17 @@ class Field extends WireData implements Saveable, Exportable {
 
 		if(!$fieldgroupContext || count($allowContext)) {
 			
-			$inputfields = new InputfieldWrapper();
+			$inputfields = $this->wire(new InputfieldWrapper());
 			if(!$fieldgroupContext) $inputfields->head = $this->_('Field type details');
 			$inputfields->attr('title', $this->_('Details'));
+			$inputfields->attr('id+name', 'fieldtypeConfig');
 
 			try {
 				$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
-				if(!$fieldtypeInputfields) $fieldtypeInputfields = new InputfieldWrapper();
+				if(!$fieldtypeInputfields) $fieldtypeInputfields = $this->wire(new InputfieldWrapper());
 				$configArray = $this->type->getConfigArray($this); 
 				if(count($configArray)) {
-					$w = new InputfieldWrapper();
+					$w = $this->wire(new InputfieldWrapper());
 					$w->importArray($configArray);
 					$w->populateValues($this);
 					$fieldtypeInputfields->import($w);
@@ -778,17 +931,18 @@ class Field extends WireData implements Saveable, Exportable {
 					if($fieldgroupContext && !in_array($inputfield->name, $allowContext)) continue;
 					$inputfields->append($inputfield);
 				}
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->trackException($e, false, true); 
 			}
 
 			if(count($inputfields)) $wrapper->append($inputfields); 
 		}
 
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 		$dummyPage = $this->wire('pages')->get("/"); // only using this to satisfy param requirement 
 
-		if($inputfield = $this->getInputfield($dummyPage)) {
+		$inputfield = $this->getInputfield($dummyPage);
+		if($inputfield) {
 			if($fieldgroupContext) {
 				$allowContext = array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf');
 				$allowContext = array_merge($allowContext, $inputfield->getConfigAllowContext($this)); 
@@ -797,11 +951,12 @@ class Field extends WireData implements Saveable, Exportable {
 				$inputfields->head = $this->_('Input field settings');
 			}
 			$inputfields->attr('title', $this->_('Input')); 
+			$inputfields->attr('id+name', 'inputfieldConfig');
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
-			if(!$inputfieldInputfields) $inputfieldInputfields = new InputfieldWrapper();
+			if(!$inputfieldInputfields) $inputfieldInputfields = $this->wire(new InputfieldWrapper());
 			$configArray = $inputfield->getConfigArray(); 
 			if(count($configArray)) {
-				$w = new InputfieldWrapper();
+				$w = $this->wire(new InputfieldWrapper());
 				$w->importArray($configArray);
 				$w->populateValues($this);
 				$inputfieldInputfields->import($w);
@@ -817,12 +972,37 @@ class Field extends WireData implements Saveable, Exportable {
 		return $wrapper; 
 	}
 
+	/**
+	 * Get the database table used by this field.
+	 * 
+	 * #pw-group-retrieval
+	 * 
+	 * @return string
+	 * @throws WireException
+	 * 
+	 */
 	public function getTable() {
 		if(is_null(self::$lowercaseTables)) self::$lowercaseTables = $this->config->dbLowercaseTables ? true : false;
-		$name = $this->settings['name'];
-		if(self::$lowercaseTables) $name = strtolower($name); 
-		if(!strlen($name)) throw new WireException("Field 'name' is required"); 
-		return "field_" . $name;
+		if(!empty($this->setTable)) {
+			$table = $this->setTable;
+		} else {
+			$name = $this->settings['name'];
+			if(!strlen($name)) throw new WireException("Field 'name' is required");
+			$table = self::tablePrefix . $name;
+		}
+		if(self::$lowercaseTables) $table = strtolower($table); 
+		return $table;
+	}
+
+	/**
+	 * Set an override table name, or omit (or null) to restore default table name
+	 * 
+	 * @param null|string $table
+	 * 
+	 */
+	public function setTable($table = null) {
+		$table = empty($table) ? '' : $this->wire('sanitizer')->fieldName($table);
+		$this->setTable = $table;
 	}
 
 	/**
@@ -839,7 +1019,7 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 	
 	/**
-	 * Return field label, description or notes for current language
+	 * Return field label, description or notes for language
 	 *
 	 * @param string $property Specify either label, description or notes
 	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
@@ -857,11 +1037,32 @@ class Field extends WireData implements Saveable, Exportable {
 		if($property == 'label' && !strlen($value)) $value = $this->name;
 		return $value;
 	}
+	
+	/**
+	 * Set a field label, description or notes for language
+	 *
+	 * @param string $property Specify either label, description or notes
+	 * @param string $value Text to set for property
+	 * @param Page|Language $language Optionally specify a language. If not specified default language is used. 
+	 *
+	 */
+	protected function setText($property, $value, $language = null) {
+		if($this->wire('languages') && $language != null) {
+			if(is_string($language) || is_int($language)) $language = $this->wire('languages')->get($language);
+			if($language && (!$language->id || $language->isDefault())) $language = null;
+		} else {
+			$language = null;
+		}
+		if(is_null($language)) $language = '';
+		$this->set("$property$language", $value); 
+	}
 
 	/**
-	 * Return field label for current language
+	 * Get field label for current language, or another specified language.
 	 *
-	 * This is different from $this->label in that it knows about languages (when installed).
+	 * This is different from `$field->label` in that it knows about languages (when installed).
+	 * 
+	 * #pw-group-retrieval
 	 *
 	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
 	 * @return string
@@ -872,9 +1073,11 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Return field description for current language
+	 * Return field description for current language, or another specified language.
 	 *
-	 * This is different from $this->description in that it knows about languages (when installed).
+	 * This is different from `$field->description` in that it knows about languages (when installed).
+	 * 
+	 * #pw-group-retrieval
 	 *
 	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
 	 * @return string
@@ -885,9 +1088,11 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Return field notes for current language
+	 * Return field notes for current language, or another specified language. 
 	 *
-	 * This is different from $this->notes in that it knows about languages (when installed).
+	 * This is different from `$field->notes` in that it knows about languages (when installed).
+	 * 
+	 * #pw-group-retrieval
 	 *
 	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
 	 * @return string
@@ -898,9 +1103,11 @@ class Field extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Return the icon used by this field, or blank if none
+	 * Return the icon used by this field, or blank if none.
 	 * 
-	 * @param bool $prefix Whether or not you want the fa- prefix included
+	 * #pw-group-retrieval
+	 * 
+	 * @param bool $prefix Whether or not you want the icon prefix included (i.e. "fa-")
 	 * @return mixed|string
 	 * 
 	 */
@@ -911,9 +1118,53 @@ class Field extends WireData implements Saveable, Exportable {
 		if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', '', $icon); 
 		return $prefix ? "fa-$icon" : $icon;
 	}
+	
+	/**
+	 * Set label, optionally for a specific language
+	 *
+	 * #pw-group-manipulation
+	 *
+	 * @param string $text Text to set
+	 * @param Language|string|int|null $language Language to use
+	 * @since 3.0.16 Added for consistency, all versions can still set property directly. 
+	 *
+	 */
+	public function setLabel($text, $language = null) {
+		$this->setText('label', $text, $language);
+	}
+
+	/**
+	 * Set description, optionally for a specific language
+	 *
+	 * #pw-group-manipulation
+	 *
+	 * @param string $text Text to set
+	 * @param Language|string|int|null $language Language to use
+	 * @since 3.0.16 Added for consistency, all versions can still set property directly.
+	 *
+	 */
+	public function setDescription($text, $language = null) {
+		$this->setText('description', $text, $language);
+	}
+	
+	/**
+	 * Set notes, optionally for a specific language
+	 *
+	 * #pw-group-manipulation
+	 *
+	 * @param string $text Text to set
+	 * @param Language|string|int|null $language Language to use
+	 * @since 3.0.16 Added for consistency, all versions can still set property directly.
+	 *
+	 */
+	public function setNotes($text, $language = null) {
+		$this->setText('notes', $text, $language);
+	}
 
 	/**
 	 * Set the icon for this field
+	 * 
+	 * #pw-group-manipulation
 	 * 
 	 * @param string $icon Icon name
 	 * @return $this

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Process Lister
@@ -10,16 +10,12 @@
  *
  * Provides an alternative listing view for pages using specific templates. 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * For support of actions, new edit modules, and custom configurable Listers, 
- * check out ListerPro at https://processwire.com/ListerPro/
+ * check out ListerPro at http://processwire.com/ListerPro/
  * 
- * @todo support column subfield properties for modifiedUser and createdUser
  * 
  * GET vars recognized by Lister:
  * 
@@ -43,7 +39,7 @@
  * @property int $defaultLimit Max items to show per pagination [25]
  * @property int $imageWidth Width for thumbnails, 0=proportional to height [0]
  * @property int $imageHeight Height for thumbnails, 0=proportional to width [100]
- * @property int|bool $imageFirst Show only first image? [false]
+ * @property int|bool $imageFirst Show only first image? [false] 
  * @property int $imageStyle 1=Detailed, 0=Image only (default=0)
  * @property int $viewMode View mode, see windowMode constants [self::windowModeNone]
  * @property int $editMode Edit mode, see windowMode constants [self::windowModeNone] 
@@ -63,7 +59,11 @@
  * @property bool $showIncludeWarnings Whether or not to show warnings about what pages were excluded to to max "include=" mode [true]
  * @property string $blankLabel Label when a field is blank (default=Blank)
  * @property int $editOption Edit option setting, used only by ListerPro
+ * @property bool $responsiveTable Whether or not Lister table should be responsive rather than horiz scroll
  * 
+ * 
+ * @todo make system fields hookable for output like markupValue is for custom fields
+ * @todo show bookmark title somewhere on page so users know what they are looking at (+ browser title?)
  *
  */
 
@@ -190,7 +190,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		// image width/height for thumbnail images
 		$this->set('imageWidth', 0);
 		$this->set('imageHeight', 100);
-		$this->set('imageFirst', 0); 
+		$this->set('imageFirst', 0);
 		$this->set('imageStyle', 0); // 0=image only, 1=detailed
 
 		// view and edit window modes
@@ -239,6 +239,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	
 		// bookmarked selectors
 		$this->set('bookmarks', array()); 
+	
+		// whether or not table collapses (rather than horiz scroll) at lower resolutions
+		$this->set('responsiveTable', true);
 		
 		$nameLabel = $this->_('Name'); 
 		$createdLabel = $this->_('Created'); 
@@ -753,8 +756,18 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if(empty($s2)) return $s1; 
 		if(empty($s1)) return $s2; 
 		
-		$selectors1 = new Selectors($s1); 
-		$selectors2 = new Selectors($s2); 
+		try {
+			$selectors1 = $this->wire(new Selectors($s1));
+		} catch(\Exception $e) {
+			$this->error($e->getMessage());
+			$selectors1 = new Selectors();
+		}
+		try {
+			$selectors2 = $this->wire(new Selectors($s2));
+		} catch(\Exception $e) {
+			$this->error($e->getMessage());
+			$selectors2 = new Selectors();
+		}
 		
 		foreach($selectors1 as $key1 => $selector1) {
 			//$value = $selector1->value; 
@@ -777,6 +790,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		
 		$combined = ((string) $selectors1) . ", " . ((string) $selectors2);
 		return $combined; 	
+		
 	}
 
 
@@ -869,7 +883,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			}
 		}
 		
-		$selectors = new Selectors($selector);
+		$selectors = $this->wire(new Selectors($selector));
 		$templates = array();
 		$changed = false;
 		$templateSelector = null;
@@ -948,7 +962,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				// user specified 1 or more templates
 				$numEditable = 0;
 				// determine how many templates are editable
-				$test = new Page();
+				$test = $this->wire('pages')->newPage();
 				foreach($templates as $template) {
 					$test->template = $template;
 					$test->id = 999; // required (any ID number works)
@@ -1022,6 +1036,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$table = $this->modules->get('MarkupAdminDataTable');
 		$table->setSortable(false);
 		$table->setResizable(true);
+		$table->setResponsive($this->responsiveTable);
 		$table->setClass('ProcessListerTable');
 		$columns = $this->sessionGet('columns'); 
 		if(!$columns) $columns = $this->columns; 
@@ -1070,7 +1085,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$table->headerRow($header); 
 
 		foreach($results as $p) {
-			$table->row($this->buildListerTableRow($p, $fields, $columns)); 
+			$table->row($this->buildListerTableRow($p, $fields, $columns), array(
+				'attrs' => array('data-pid' => $p->id)
+			)); 
 		}
 
 		return $table;
@@ -1131,16 +1148,12 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$subname = 'title|name';
 			}
 		}
-		
-		if($value instanceof Pageimages && $this->imageStyle == 0 && (!$subname || $subname == 'data')) {
-			$value = $value->getArray();
-		}
 
 		if($subname == 'count' && $value instanceof WireArray) {
 			// count
 			$value = $value->count();
 
-		} else if($field && $field->type && $field->type->isHooked($field->type->className() . '::markupValue()')) {
+		} else if($field && $field->type && $this->wire('hooks')->isHooked($field->type->className() . '::markupValue()')) {
 			// if the markupValue method is hooked, let it have control
 			if($subname == 'data') $subname = '';
 			$value = $field->type->markupValue($p, $field, $value, $subname);
@@ -1175,19 +1188,18 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			// Pagefiles or Pageimages
 			if($value->count()) {
 				if($value instanceof Pageimages && $this->imageFirst) $value = $value->slice(0, 1);
-				$inputfield = $field->getInputfield(new NullPage());
 				if($value instanceof Pageimages) {
 					if($this->imageWidth || $this->imageHeight) {
-						$inputfield->adminThumbs = true; 
-						$inputfield->adminThumbWidth = $this->imageWidth;
-						$inputfield->adminThumbHeight = $this->imageHeight;
+						$field->inputfieldSetting('adminThumbs', true);
+						$field->inputfieldSetting('adminThumbWidth', $this->imageWidth);
+						$field->inputfieldSetting('adminThumbHeight', $this->imageHeight);
+					}
+					if($this->imageStyle == 0) {
+						$field->inputfieldSetting('renderValueFlags', Inputfield::renderValueMinimal); // | Inputfield::renderValueNoWrap); 
 					}
 				}
-				$inputfield->attr('value', $value);
-				$inputfield->skipLabel = Inputfield::skipLabelHeader;
-				$wrapper = new InputfieldWrapper();
-				$wrapper->add($inputfield);
-				$value = $wrapper->renderValue();
+				$field->inputfieldSetting('skipLabel', Inputfield::skipLabelHeader);
+				$value = (string) $field->type->markupValue($p, $field, $value);
 			} else {
 				$value = '';
 			}
@@ -1208,7 +1220,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				if($subname && is_object($v)) $v = $v->$subname; 
 				if($v instanceof Pageimage) {
 					$vfull = $v;
-					if($this->imageWidth || $this->imageHeight) $v = $v->size($this->imageWidth, $this->imageHeight); 
+					if($this->imageWidth || $this->imageHeight) $v = $v->size($this->imageWidth, $this->imageHeight);
 					$alt = $vfull->basename . ($vfull->description ? ' - ' . $this->sanitizer->entities1($vfull->description) : "");
 					$v = "<a href='$vfull->URL' title='$alt' class='lister-lightbox'><img alt='$alt' src='$v->URL' style='margin: 4px 4px 4px 0' /></a>";
 					$isImage = true;
@@ -1252,16 +1264,16 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			if($subname == 'data') $subname = '';
 			$value = $field->type->markupValue($p, $field, $value, $subname); 
 			// value may be MarkupFieldtype object
-			$value = (string) $value;
+			$value = (string) $value; 
 			
 		} else {
 			// other or unknown
 			if($subname == 'data') $value = (string) $value;
 			if($subname && is_object($value)) $value = $value->$subname;
-			$value = $this->wire('sanitizer')->entities($value);
+			$value = $this->wire('sanitizer')->entities($value); 
 		}
 	
-		if($isFirstCol) $value = $this->buildListerTableColActions($p, $value);
+		if($isFirstCol) $value = $this->buildListerTableColActions($p, $value); 
 
 		return $value; 
 
@@ -1310,7 +1322,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				}
 			}
 		}
-		$icon = $p->template->getIcon();
+		$icon = $p->getIcon();
 		$icon = $icon ? wireIconMarkup($icon, 'fw') : '';	
 		if($class) $value = "<span class='" . trim($class) . "'>$value</span>";
 
@@ -1431,11 +1443,11 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		
 		if(is_null($pageListRender)) {
 			require_once($this->wire('config')->paths->ProcessPageList . 'ProcessPageListRenderJSON.php');
-			$pageListRender = new ProcessPageListRenderJSON($this->wire('page'), new PageArray()); 
+			$pageListRender = $this->wire(new ProcessPageListRenderJSON($this->wire('page'), $this->wire('pages')->newPageArray())); 
 		}
 		
 		$actions = $pageListRender->getPageActions($p);
-		
+
 		if(isset($actions['edit']) && $this->editURL && strpos($actions['edit']['url'], '/page/edit/') !== false) {
 			list($path, $queryString) = explode('?', $actions['edit']['url']);
 			$actions['edit']['url'] = $this->editURL . '?' . $queryString;
@@ -1492,11 +1504,11 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$this->finalSelector = $selector; 
 
 		try {
-			$results = $selector ? $this->wire('pages')->find($selector) : new PageArray();
+			$results = $selector ? $this->wire('pages')->find($selector) : $this->wire('pages')->newPageArray();
 			
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage());
-			$results = new PageArray();
+			$results = $this->wire('pages')->newPageArray();
 		}
 
 		if(is_null($this->knownTotal['total'])) {
@@ -1643,7 +1655,13 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$this->setupOpenPageIDs();
 	
 		if($this->wire('config')->ajax) {
-			return $this->renderResults();
+			$out = $this->renderResults();
+			if(self::debug) {
+				foreach($this->wire('database')->queryLog() as $n => $item) {
+					$out .= "<p>$n. $item</p>";
+				}
+			}
+			return $out;
 		}
 		
 		if($this->wire('input')->get('reset')) {
@@ -1847,7 +1865,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		static $bookmarks = null;
 		if(is_null($bookmarks)) {
 			require_once(dirname(__FILE__) . '/ProcessPageListerBookmarks.php');
-			$bookmarks = new ProcessPageListerBookmarks($this);
+			$bookmarks = $this->wire(new ProcessPageListerBookmarks($this));
 		}
 		return $bookmarks;
 	}

@@ -29,3 +29,4 @@
 2016-04-20 13:50:55	admin	http://church.markgoldsmith.me/admin/page/sort/	Updated sort for 3 pages
 2016-04-20 14:21:34	admin	http://church.markgoldsmith.me/admin/setup/template/removeFields	Deleted field "thumbnail" data in 0 row(s) from 0 page(s). [page-by-page]
 2016-04-20 14:21:50	admin	http://church.markgoldsmith.me/admin/page/sort/	Updated sort for 12 pages
+2016-09-03 07:43:44	guest	http://dev.thursdaychurch.org/admin/login/	Created session path C:/MAMP/htdocs/site/assets/sessions/ (WireLog)

@@ -1,8 +1,7 @@
 jQuery Tabs for ProcessWire
 
-ProcessWire 2.x
-Copyright (C) 2015 by Ryan Cramer
-http://processwire.com
+ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+https://processwire.com
 
 USAGE
 =====

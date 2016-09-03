@@ -1,21 +1,14 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Notices
- *
+ * 
+ * Base class that holds a message, source class, and timestamp.
  * Contains notices/messages used by the application to the user. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
- */
-
-/**
- * Base class that holds a message, source class, and timestamp
- * 
  * @property string $text Text of notice
  * @property string $class Class of notice
  * @property int $timestamp When the notice was generated
@@ -130,7 +123,7 @@ class Notices extends WireArray {
 	}	
 
 	public function makeBlankItem() {
-		return new NoticeMessage(''); 
+		return $this->wire(new NoticeMessage('')); 
 	}
 
 	public function add($item) {
@@ -160,7 +153,7 @@ class Notices extends WireArray {
 		if(($item->flags & Notice::warning) && !$item instanceof NoticeWarning) {
 			// if given a warning of either NoticeMessage or NoticeError, convert it to a NoticeWarning
 			// this is in support of legacy code, as NoticeWarning didn't used to exist
-			$warning = new NoticeWarning($item->text, $item->flags);
+			$warning = $this->wire(new NoticeWarning($item->text, $item->flags));
 			$warning->class = $item->class;
 			$warning->timestamp = $item->timestamp;
 			$item = $warning;
@@ -176,6 +169,7 @@ class Notices extends WireArray {
 	}
 	
 	protected function addLog($item) {
+		/** @var Notice $item */
 		$text = $item->text;
 		if($this->wire('config')->debug && $item->class) $text .= " ($item->class)"; 
 		$this->wire('log')->save($item->getName(), $text); 
@@ -208,6 +202,7 @@ class Notices extends WireArray {
 	 */
 	public function sanitizeArray(array $a) {
 		$sanitizer = $this->wire('sanitizer'); 
+		$b = array();
 		foreach($a as $key => $value) {
 			if(is_array($value)) {
 				$value = $this->sanitizeArray($value);
@@ -215,8 +210,9 @@ class Notices extends WireArray {
 				if(is_object($value)) $value = (string) $value;
 				$value = $sanitizer->entities($value); 
 			} 
-			$a[$key] = $value;	
+			$key = $this->wire('sanitizer')->entities($key);
+			$b[$key] = $value;
 		}
-		return $a; 
+		return $b; 
 	}
 }

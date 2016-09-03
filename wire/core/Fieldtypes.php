@@ -1,26 +1,21 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Fieldtypes
  *
- * Maintains a collection of Fieldtype modules.
+ * #pw-summary Maintains a collection of Fieldtype modules.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
- * 
+ *
  *
  */
 class Fieldtypes extends WireArray {
 
 	/**
-	 * Instance of Modules class
-	 *
-	protected $modules; 
+	 * @var bool
+	 * 
 	 */
-	
 	protected $preloaded = false;
 
 	/**
@@ -56,6 +51,9 @@ class Fieldtypes extends WireArray {
 
 	/**
 	 * Per WireArray interface, items added to Fieldtypes must be Fieldtype instances
+	 * 
+	 * @param Wire|Fieldtype $item
+	 * @return bool
 	 *
 	 */
 	public function isValidItem($item) {
@@ -64,6 +62,9 @@ class Fieldtypes extends WireArray {
 
 	/**
 	 * Per the WireArray interface, keys must be strings (field names)
+	 * 
+	 * @param string|int $key
+	 * @return bool
 	 *
 	 */
 	public function isValidKey($key) {
@@ -72,6 +73,9 @@ class Fieldtypes extends WireArray {
 
 	/**
 	 * Per the WireArray interface, Fields are indxed by their name
+	 * 
+	 * @param Fieldtype $item
+	 * @return string
 	 *
 	 */
 	public function getItemKey($item) {
@@ -88,11 +92,12 @@ class Fieldtypes extends WireArray {
 		return false;
 	}
 
-
 	/**
 	 * Per the WireArray interface, return a blank copy
 	 *
 	 * Since Fieldtype is abstract, there is nothing but NULL to return here
+	 * 
+	 * @return null
 	 *
 	 */
 	public function makeBlankItem() {
@@ -148,9 +153,6 @@ class Fieldtypes extends WireArray {
 	public function getIterator() { $this->preload(); return parent::getIterator(); }
 	public function getNext($item, $strict = true) { $this->preload(); return parent::getNext($item, $strict); }
 	public function getPrev($item, $strict = true) { $this->preload(); return parent::getPrev($item, $strict); }
-	
-	
-	
 }
 
 

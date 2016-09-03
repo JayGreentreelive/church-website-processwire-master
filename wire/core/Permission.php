@@ -1,18 +1,22 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Permission Page
  *
- * A type of Page used for storing an individual User
+ * #pw-summary Permission is a Page type used for storing an individual permission. 
+ * #pw-body = 
+ * One or more Permission objects are attached to `Role` objects, which are then attached to `User` objects 
+ * and `Template` objects, forming ProcessWire's role-based access control system. Outside of roles, 
+ * Permission objects are managed with the `$permissions` API variable. 
+ * #pw-body
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * @property int $id Numeric page ID of the permission. 
+ * @property string $name Name of the permission. 
+ * @property string $title Short description of what the permission is for. 
  * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
- * @todo PW3 move permissions to use Page hierarchy or Page reference for parent/child relationships between permissions
- *
  */
 
 class Permission extends Page {
@@ -47,16 +51,18 @@ class Permission extends Page {
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
-		if(is_null($tpl)) $tpl = $this->fuel('templates')->get('permission'); 
-		$this->parent = $this->fuel('pages')->get($this->fuel('config')->permissionsPageID); 
 		parent::__construct($tpl); 
+		if(is_null($tpl)) $this->template = $this->wire('templates')->get('permission'); 
+		$this->parent = $this->wire('pages')->get($this->wire('config')->permissionsPageID); 
 	}
 
 	/**
-	 * Return the immediate parent permission of this permission or NullPage if no parent permission
+	 * Return the immediate parent permission of this permission or NullPage if no parent permission.
 	 * 
 	 * For permissions, parents relations are typically by name. For instance, page-edit is the parent of page-edit-created.
 	 * But all page-* permissions are assumed to have page-edit as parent, except for page-view. 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @return Permission|NullPage
 	 * 
@@ -83,22 +89,31 @@ class Permission extends Page {
 			$permission = $permissions->get($name); 
 		} while(!$permission->id); 
 		
-		if(is_null($permission)) $permission = new NullPage();
+		if(is_null($permission)) $permission = $this->wire('pages')->newNullPage();
 		
 		return $permission;
 	}
-	
+
+	/**
+	 * Get the root parent permission
+	 * 
+	 * #pw-internal
+	 * 
+	 * @return Permission|NullPage
+	 * @throws WireException
+	 * 
+	 */
 	public function getRootParentPermission() {
 		if(isset(self::$parentPermissions[$this->name])) {
 			$name = self::$parentPermissions[$this->name]; 
-			if($name == 'none') return new NullPage();
+			if($name == 'none') return $this->wire('pages')->newNullPage();
 		}
 		$parts = explode('-', $this->name);	
-		if(count($parts) < 2) return new NullPage();
+		if(count($parts) < 2) return $this->wire('pages')->newNullPage();
 		$name = "$parts[0]-$parts[1]";
 		if(isset(self::$parentPermissions[$name])) {
 			$name = self::$parentPermissions[$name];
-			if($name == 'none') return new NullPage();
+			if($name == 'none') return $this->wire('pages')->newNullPage();
 			return $this->wire('permissions')->get($name);
 		}
 		if($parts[0] == 'page') $name = 'page-edit';
@@ -107,6 +122,8 @@ class Permission extends Page {
 
 	/**
 	 * Return the API variable used for managing pages of this type
+	 * 
+	 * #pw-internal
 	 *
 	 * @return Pages|PagesType
 	 *

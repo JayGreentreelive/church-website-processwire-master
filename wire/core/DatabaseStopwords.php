@@ -1,16 +1,13 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire DatabaseStopwords
  *
  * MySQL stopwords, primarily for use with filtering fulltext queries
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
- * 
+ *
  *
  */
 class DatabaseStopwords {
@@ -57,6 +54,8 @@ class DatabaseStopwords {
 
 	/**
 	 * Get all stopwords
+	 * 
+	 * @return array
 	 *
 	 */
 	static public function getAll() {
@@ -65,6 +64,9 @@ class DatabaseStopwords {
 
 	/**
 	 * Is the provided word a stopword?
+	 * 
+	 * @param string $word
+	 * @return bool
 	 *
 	 */
 	static public function has($word) {
@@ -73,6 +75,8 @@ class DatabaseStopwords {
 
 	/**
 	 * Add a stopword to the list
+	 * 
+	 * @param string $word
 	 *
 	 */
 	static public function add($word) {
@@ -81,6 +85,8 @@ class DatabaseStopwords {
 
 	/**
 	 * Remove a word from the stopwords
+	 * 
+	 * @param string $word
 	 *
 	 */
 	static public function remove($word) {

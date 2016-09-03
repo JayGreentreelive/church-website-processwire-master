@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class InputfieldFloat extends InputfieldInteger {
 	
@@ -51,6 +51,13 @@ class InputfieldFloat extends InputfieldInteger {
 		return $inRange;
 	}
 
+	/**
+	 * Override method from Inputfield to properly handle HTML5 number values
+	 * 
+	 * @param array $attributes
+	 * @return string
+	 * 
+	 */
 	public function getAttributesString(array $attributes = null) {
 		if($attributes && $attributes['type'] === 'number' && is_float($attributes['value'])) {
 			if(strlen("$attributes[value]") && !ctype_digit(str_replace('.', '', $attributes['value']))) {

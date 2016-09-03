@@ -5,10 +5,7 @@
  * Code by Ryan Cramer
  * Sponsored by Avoine
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -59,7 +56,7 @@ var InputfieldSelector = {
 			timeout = setTimeout(function() { InputfieldSelector.changeAny($t); }, 100); 
 		}); 
 
-		$(".InputfieldSelector .selector-add").click(function() {
+		$(document).on('click', '.InputfieldSelector .selector-add', function() {
 			InputfieldSelector.addRow($(this)); 
 			return false; 
 		}); 	
@@ -97,7 +94,7 @@ var InputfieldSelector = {
 					var subfield = $row.find(".select-subfield");
 					var field = subfield.length ? subfield.val() : $row.find(".select-field").val();
 					var name = $row.parents(".InputfieldSelector").find("input.selector-value").attr('name'); // selector-value intentional!
-					InputfieldSelector.setupAutocomplete($ac, field, name);
+					InputfieldSelector.setupAutocomplete($ac, field, name); 
 				}
 			}); 
 		}

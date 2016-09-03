@@ -21,6 +21,10 @@ textarea {
 	max-width: 100%; 
 }
 
+textarea {
+	display: block;
+}
+
 input,
 textarea {
 	/* slight padding for input and textarea elements... */
@@ -42,10 +46,6 @@ input[type=file] {
 	border: none; 
 	line-height: 1em;
 	font-size: $notes-font-size;
-}
-
-textarea {
-	display: block;
 }
 
 textarea,

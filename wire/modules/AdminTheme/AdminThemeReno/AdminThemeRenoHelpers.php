@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * AdminThemeRenoHelpers.php
@@ -7,16 +7,13 @@
  * Copyright (C) 2015 by Tom Reno (Renobird)
  * http://www.tomrenodesign.com
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * 
  */
 
-require(wire('config')->paths->AdminThemeDefault . 'AdminThemeDefaultHelpers.php'); 
+require(realpath(__DIR__ . '/../AdminThemeDefault/AdminThemeDefaultHelpers.php')); 
 
 class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 
@@ -76,12 +73,36 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$items = array();
 		$class = '';
 		$user = $this->wire('user');
-		$config = wire("config");
+		$config = $this->wire("config");
 		$adminTheme = $this->wire('adminTheme');
 		$fieldName = "avatar_field_" . $user->template->name;
 		$adminTheme->$fieldName != '' ?  $avatarField = $adminTheme->$fieldName : $avatarField = '';
 		$avatarField != '' ?  $imgField = $user->get($avatarField) : $imgField = '';
 		$avatar = "<i class='fa $adminTheme->profile'></i>";
+	
+		if($user->isLoggedin() && !$this->session->get('touch')) { 
+			if($config->debug && $user->isSuperuser()) {
+				$debugLabel = __('Debug Mode Tools', '/wire/templates-admin/debug.inc');
+				$items[] = array(
+					"class" => "",
+					"label" => "<i class='fa fa-bug'></i>",
+					"link" => "#",
+					"attrs" => "title='$debugLabel' onclick=\"$('#debug_toggle').click();return false;\"", 
+				);
+			}
+			if($this->wire('process') != 'ProcessPageList') {
+				$treeLabel = $this->_('Tree');
+				$items[] = array(
+					"class" => "",
+					"label" => "<i class='fa fa-sitemap'></i>",
+					"link" => $config->urls->admin . 'page/',
+					"attrs" => "class='pw-panel' " .
+						"data-tab-text='$treeLabel' " .
+						"data-tab-icon='sitemap' " .
+						"title='$treeLabel'"
+				);
+			}
+		}
 
 		// View site
 		$items[] = array(
@@ -103,11 +124,11 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 				"class" => "superuser",
 				"label" => "<i class='fa fa-bolt'></i>",
 				"children" => array(
-					"<i class='fa fa-life-ring'></i> " . $this->_('Support Forums')  => array('https://processwire.com/talk/', 'target="_blank"'),
+					"<i class='fa fa-life-ring'></i> " . $this->_('Support Forums')  => array('http://processwire.com/talk/', 'target="_blank"'),
 					"<i class='fa fa-book'></i> " . $this->_('Documentation') => array('https://processwire.com/docs/', 'target="_blank"'),
 					"<i class='fa fa-github'></i> " . $this->_('Github Repo') => array('https://github.com/ryancramerdesign/ProcessWire/', 'target="_blank"'),
 					"<i class='fa fa-code'></i> " . $this->_('Cheatsheet')  => array('http://cheatsheet.processwire.com', 'target="_blank"'),
-					"<i class='fa fa-anchor'></i> " . $this->_('Captain Hook')  => array('https://processwire.com/api/hooks/captain-hook/', 'target="_blank"'),
+					"<i class='fa fa-anchor'></i> " . $this->_('Captain Hook')  => array('http://processwire.com/api/hooks/captain-hook/', 'target="_blank"'),
 				)
 			);
 		}
@@ -162,7 +183,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 			// Add dropdown class if there are children
 			if($children) $class .= " dropdown";
 
-			$out .= "<li class='$class'><a href='$link'>$label</a>";
+			$out .= "<li class='$class'><a href='$link' $attrs>$label</a>";
 				if (is_array($children)){
 					$out .= "<ul>";
 						foreach($children as $child_label => $child_link){
@@ -199,6 +220,10 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$modules = $this->wire('modules'); 
 		$showItem = $isSuperuser;
 		$children = $p->numChildren() ? $p->children("check_access=0") : array();
+		if($p->name == 'page' && !$children->has("name=list")) {
+			// +PW27: ensure the "Tree" page is shown if it is hidden
+			$children->prepend($p->child("name=list, include=hidden"));
+		}
 		$out = '';
 		$iconName = $p->name;
 		$icon = $this->wire('adminTheme')->$iconName;
@@ -240,7 +265,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 
 		$out .= "<li>";
 	
-		if(count($children)) {
+		if(count($children) && WireArray::iterable($children)) {
 
 			$out .= "<a href='$p->url' class='$class $p->name '><i class='fa {$icon}'></i> $title</a>"; 
 			$out .= "<ul>";
@@ -264,15 +289,17 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 					
 				} else {
 					// $c is a Page object
+					if(!$c->process || !$c->viewable()) continue;
+					
 					$list = array(
-						wire('config')->urls->admin . "page/",
-						wire('config')->urls->admin . "page/edit/"
+						$this->wire('config')->urls->admin . "page/",
+						$this->wire('config')->urls->admin . "page/edit/"
 					);
-					in_array($currentPagePath, $list) ? $currentPagePath = wire('config')->urls->admin . "page/list/" : '';
-					$class = strpos($currentPagePath, $c->url) === 0 ? 'current' : ''; // child current class
+					
+					in_array($currentPagePath, $list) ? $currentPagePath = $this->wire('config')->urls->admin . "page/list/" : '';
+					$class = strlen($currentPagePath) && strpos($currentPagePath, $c->url) === 0 ? 'current' : ''; // child current class
 					$name = $c->name;
 
-					if(!$c->viewable()) continue;
 					$moduleInfo = $c->process ? $modules->getModuleInfo($c->process) : array();
 					$title = $this->getPageTitle($c);
 					if(!strlen($title)) continue;

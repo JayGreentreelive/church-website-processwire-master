@@ -1,12 +1,9 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Selectable Option Array, for FieldtypeOptions 
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -54,7 +51,7 @@ class SelectableOptionArray extends WireArray {
 	 * 
 	 */
 	public function getPage() {
-		return $this->page ? $this->page : new NullPage();
+		return $this->page ? $this->page : $this->wire('pages')->newNullPage();
 	}
 
 	/**
@@ -179,7 +176,7 @@ class SelectableOptionArray extends WireArray {
 	}
 
 	public function makeBlankItem() {
-		return new SelectableOption();
+		return $this->wire(new SelectableOption());
 	}
 
 	/**

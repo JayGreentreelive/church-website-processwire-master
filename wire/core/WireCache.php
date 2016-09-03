@@ -1,16 +1,18 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireCache
  *
- * Simple cache or storing strings (encoded or otherwise) and serves as $cache API var
- *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- *
- * https://processwire.com
+ * Simple cache for storing strings (encoded or otherwise) and serves as $cache API var
  * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
+ * https://processwire.com
+ *
+ * #pw-summary Provides easy, persistent caching of markup, strings, arrays or PageArray objects. 
+ * #pw-summary-constants These constants are used for the `$expire` argument of get() and save() cache methods. 
+ * #pw-use-constants
+ * 
+ * @todo add support for a deleteAll() option that can delete non-system caches
  *
  */
 
@@ -20,17 +22,58 @@ class WireCache extends Wire {
 	 * Expiration constants that may be supplied to WireCache::save $seconds argument. 
 	 * 
 	 */
+
+	/**
+	 * Cache should never expire (unless manually cleared). 
+	 * 
+	 */
 	const expireNever = '2010-04-08 03:10:10';
+
+	/**
+	 * Cache should expire when a given resource (Page or Template) is saved. 
+	 * 
+	 */
 	const expireSave = '2010-01-01 01:01:01';
-	const expireSelector = '2010-01-02 02:02:02'; // used internally when selector is specified
+
+	/**
+	 * Used internally when a selector is specified. 
+	 * #pw-internal
+	 * 
+	 */
+	const expireSelector = '2010-01-02 02:02:02';
+
+	/**
+	 * Cache should expire now
+	 * 
+	 */
 	const expireNow = 0;
-	const expireHourly = 3600; 
+
+	/**
+	 * Cache should expire once per hour
+	 * 
+	 */
+	const expireHourly = 3600;
+
+	/**
+	 * Cache should expire once per day
+	 */
 	const expireDaily = 86400;
+
+	/**
+	 * Cache should expire once per week
+	 * 
+	 */
 	const expireWeekly = 604800;
+
+	/**
+	 * Cache should expire once per month
+	 * 
+	 */
 	const expireMonthly = 2419200;
 
 	/**
-	 * Date format used by our DB queries
+	 * Date format used by our database queries
+	 * #pw-internal
 	 * 
 	 */
 	const dateFormat = 'Y-m-d H:i:s';
@@ -65,12 +108,25 @@ class WireCache extends Wire {
 	 * After a preloaded cache is returned from a get() call, it is removed from local storage. 
 	 * 
 	 * @param string|array $names
-	 * @param null $expire
+	 * @param int|string|null $expire
 	 * 
 	 */
 	public function preload(array $names, $expire = null) {
 		if(!is_array($names)) $names = array($names);
 		$this->preloads = array_merge($this->preloads, $this->get($names, $expire));
+	}
+
+	/**
+	 * Preload all caches for the given object or namespace
+	 * 
+	 * @param object|string $ns
+	 * @param int|string|null $expire
+	 * 
+	 */
+	public function preloadFor($ns, $expire = null) {
+		if(is_object($ns)) $ns = wireClassName($ns, false);
+		$ns .= '__*';
+		$this->preloads = array_merge($this->preloads, $this->get($ns, $expire));
 	}
 	
 	/**
@@ -95,7 +151,8 @@ class WireCache extends Wire {
 	 * 
 	 */
 	public function get($name, $expire = null, $func = null) {
-		
+	
+		$_expire = $expire;
 		if(!is_null($expire)) {
 			if(!is_int($expire) && !is_string($expire) && !$expire instanceof Wire && is_callable($expire)) {
 				$_func = $func;
@@ -144,7 +201,7 @@ class WireCache extends Wire {
 		
 		$sql = "SELECT name, data FROM caches WHERE (" . implode(' OR ', $where) . ") ";
 		
-		if(is_null($expire) || $func) {
+		if(is_null($expire)) { // || $func) {
 			$sql .= "AND (expires>=:now OR expires<=:never) ";
 			$binds[':now'] = date(self::dateFormat, time());
 			$binds[':never'] = self::expireNever;
@@ -166,11 +223,11 @@ class WireCache extends Wire {
 		$value = ''; // return value for non-multi mode
 		$values = array(); // return value for multi-mode
 		
-		try {
+		if($_expire !== self::expireNow) try {
 			$query->execute(); 
 			if($query->rowCount() == 0) {
 				$value = null; // cache does not exist
-			} else while($row = $query->fetch(PDO::FETCH_NUM)) {
+			} else while($row = $query->fetch(\PDO::FETCH_NUM)) {
 				list($name, $value) = $row;
 				$c = substr($value, 0, 1);
 				if($c == '{' || $c == '[') {
@@ -192,7 +249,7 @@ class WireCache extends Wire {
 			}
 			$query->closeCursor();
 				
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false);
 			$value = null;
 		}
@@ -229,7 +286,7 @@ class WireCache extends Wire {
 	 */
 	protected function renderCacheValue($name, $expire, $func) {
 		
-		$ref = new ReflectionFunction($func);
+		$ref = new \ReflectionFunction($func);
 		$params = $ref->getParameters(); // requested arguments
 		$args = array(); // arguments we provide
 		
@@ -271,7 +328,7 @@ class WireCache extends Wire {
 	 * 
 	 */
 	public function getFor($ns, $name, $expire = null, $func = null) {
-		if(is_object($ns)) $ns = get_class($ns); 
+		if(is_object($ns)) $ns = wireClassName($ns, false); 
 		return $this->get($ns . "__$name", $expire, $func); 
 	}
 
@@ -331,7 +388,7 @@ class WireCache extends Wire {
 		try {
 			$result = $query->execute();
 			$this->log($this->_('Saved cache ') . ' - ' . $name);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false);
 			$result = false; 
 		}
@@ -352,7 +409,7 @@ class WireCache extends Wire {
 	 * 
 	 */
 	public function saveFor($ns, $name, $data, $expire = self::expireDaily) {
-		if(is_object($ns)) $ns = get_class($ns); 
+		if(is_object($ns)) $ns = wireClassName($ns, false); 
 		return $this->save($ns . "__$name", $data, $expire); 
 	}
 
@@ -433,9 +490,9 @@ class WireCache extends Wire {
 	}
 
 	/**
-	 * Delete the cache identified by $name
+	 * Delete/clear the cache(s) identified by $name
 	 * 
-	 * @param string $name
+	 * @param string $name Name of cache, or partial name with wildcard (i.e. "MyCache*") to clear multiple caches. 
 	 * @return bool True on success, false on failure
 	 * 
 	 */
@@ -448,12 +505,12 @@ class WireCache extends Wire {
 			} else {
 				$sql = 'DELETE FROM caches WHERE name=:name';
 			}
-			$query = $this->wire('database')->prepare($sql, "cache.delete($name)");
+			$query = $this->wire('database')->prepare($sql, "cache.delete($name)"); 
 			$query->bindValue(':name', $name); 
 			$query->execute();
 			$success = true; 
 			$this->log($this->_('Cleared cache') . ' - ' . $name);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, true);
 			$this->error($e->getMessage()); 
 			$success = false;
@@ -464,13 +521,13 @@ class WireCache extends Wire {
 	/**
 	 * Delete the cache identified by $name within given namespace ($ns)
 	 *
-	 * @param string|object $ns
+	 * @param string $ns 
 	 * @param string $name If none specified, all for $ns are deleted
 	 * @return bool True on success, false on failure
 	 *
 	 */
 	public function deleteFor($ns, $name = '') {
-		if(is_object($ns)) $ns = get_class($ns);
+		if(is_object($ns)) $ns = wireClassName($ns, false);
 		if(!strlen($name)) $name = "*";
 		return $this->delete($ns . "__$name");
 	}
@@ -560,8 +617,9 @@ class WireCache extends Wire {
 			$result = $query->execute();
 			$qty = $result ? $query->rowCount() : 0;
 			if($qty) $this->log(sprintf($this->_('General maintenance expired %d cache(s)'), $qty));
+			$query->closeCursor();
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false);
 			$this->error($e->getMessage(), Notice::debug | Notice::log);
 			$result = false;
@@ -587,17 +645,17 @@ class WireCache extends Wire {
 				$query->bindValue(':expire', self::expireSelector);
 				$query->execute();
 				$this->cacheNameSelectors = array();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->trackException($e, false);
 				$this->error($e->getMessage(), Notice::log);
 				return false;
 			}
 			if($query->rowCount()) {
-				while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+				while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 					$data = json_decode($row['data'], true);
 					if($data !== false && isset($data['selector'])) {
 						$name = $row['name'];
-						$selectors = new Selectors($data['selector']);
+						$selectors = $this->wire(new Selectors($data['selector']));
 						$this->cacheNameSelectors[$name] = $selectors;
 					}
 				}
@@ -674,7 +732,8 @@ class WireCache extends Wire {
 		$pageArrayClass = isset($data['pageArrayClass']) ? $data['pageArrayClass'] : 'PageArray';
 
 		if(!isset($data['PageArray']) || !is_array($data['PageArray'])) {
-			return new $pageArrayClass();
+			$class = wireClassName($pageArrayClass, true);
+			return $this->wire(new $class());
 		}
 
 		$options = array();
@@ -730,7 +789,7 @@ class WireCache extends Wire {
 	 * Get information about all the caches in this WireCache
 	 * 
 	 * @param bool $verbose Whether to be more verbose for human readability
-	 * @param string $name Optionally specify name of cache to get info. If ommitted, all caches are included.
+	 * @param string $name Optionally specify name of cache to get info. If omitted, all caches are included.
 	 * @return array of arrays of cache info
 	 * 
 	 */
@@ -743,7 +802,7 @@ class WireCache extends Wire {
 		if($name) $query->bindValue(":name", $name);
 		$query->execute();
 		
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 
 			$info = array(
 				'name' => $row['name'], 	

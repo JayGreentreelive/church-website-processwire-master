@@ -1,7 +1,14 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
+ * Class InputfieldURL
+ * 
  * An Inputfield for handling input of URLs
+ * 
+ * @property int|bool $noRelative Whether relative URLs are disabled
+ * @property int|bool $addRoot Whether to prepend root path
+ * @property int|bool $allowIDN Whether to allow IDNs
+ * @property int|bool $allowQuotes Whether to allow quote characters in URLs
  *
  */
 class InputfieldURL extends InputfieldText {
@@ -10,7 +17,7 @@ class InputfieldURL extends InputfieldText {
 		return array(
 			'title' => __('URL', __FILE__), // Module Title
 			'summary' => __('URL in valid format', __FILE__), // Module Summary
-			'version' => 101,
+			'version' => 102,
 			);
 	}
 
@@ -41,7 +48,7 @@ class InputfieldURL extends InputfieldText {
 			$value = trim($value); 
 			$unsanitized = $value; 
 			$value = $this->wire('sanitizer')->url($value, array(
-				'allowRelative' => $this->noRelative ? false : true, 
+				'allowRelative' => $this->noRelative ? false : true,
 				'allowIDN' => $this->allowIDN ? true : false,
 				'stripQuotes' => $this->allowQuotes ? false : true,
 			));

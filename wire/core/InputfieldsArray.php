@@ -1,19 +1,22 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * A WireArray of Inputfield instances, as used by InputfieldWrapper. 
  *
  * The default numeric indexing of a WireArray is not overridden.
- * 
- * ProcessWire 2.x
- * Copyright 2015 by Ryan Cramer
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
+ * https://processwire.com
  *
  */
+
 class InputfieldsArray extends WireArray {
 
 	/**
 	 * Per WireArray interface, only Inputfield instances are accepted.
+	 * 
+	 * @param Wire $item
+	 * @return bool
 	 *
 	 */
 	public function isValidItem($item) {
@@ -22,6 +25,9 @@ class InputfieldsArray extends WireArray {
 
 	/**
 	 * Extends the find capability of WireArray to descend into the Inputfield children
+	 * 
+	 * @param string $selector
+	 * @return WireArray|InputfieldsArray
 	 *
 	 */
 	public function find($selector) {

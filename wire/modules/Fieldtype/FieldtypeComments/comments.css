@@ -178,16 +178,30 @@
 
 /*** COMMENT STARS **********************************************/
 
-.CommentForm .CommentStars > span, 
+.CommentStars > span,
+.CommentForm .CommentStars > span,
 .CommentList .CommentStars > span {
 	display: inline-block;
 	position: relative;
 	width: 1.1em;
 	color: #ccc;
 }
-.CommentForm .CommentStars > span.CommentStarOn, 
+span.CommentStarOn,
+.CommentForm .CommentStars > span.CommentStarOn,
 .CommentList .CommentStars > span.CommentStarOn {
 	color: #FAA002;
+}
+
+span.CommentStarPartial {
+	position: relative;
+}
+span.CommentStarPartial span.CommentStarOn {
+	display: block;
+	position: absolute;
+	top: 0;
+	left: 0;
+	overflow-x: hidden;
+	line-height: 0;
 }
 
 .CommentForm .CommentStarsInput > span:hover {

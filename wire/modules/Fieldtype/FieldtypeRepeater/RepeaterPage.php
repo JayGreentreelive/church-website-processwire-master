@@ -1,12 +1,9 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * RepeaterPage represents an individual repeater page item
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -34,6 +31,13 @@ class RepeaterPage extends Page {
 	 */
 	public function setForPage(Page $forPage) {
 		$this->forPage = $forPage; 
+		/* future use
+		if($forPage->hasStatus(Page::statusDraft)) {
+			if(!$this->hasStatus(Page::statusDraft)) $this->addStatus(Page::statusDraft);
+		} else {
+			if($this->hasStatus(Page::statusDraft)) $this->removeStatus(Page::statusDraft);
+		}
+		*/
 		return $this;
 	}
 
@@ -57,10 +61,10 @@ class RepeaterPage extends Page {
 		if(strpos($parentName, $prefix) === 0) {
 			// determine owner page from parent name in format: for-page-1234
 			$forID = (int) substr($parentName, strlen($prefix));
-			$this->forPage = wire('pages')->get($forID); 
+			$this->forPage = $this->wire('pages')->get($forID); 
 		} else {
 			// this probably can't occur, but here just in case
-			$this->forPage = new NullPage();
+			$this->forPage = $this->wire('pages')->newNullPage();
 		}
 
 		return $this->forPage;
@@ -93,10 +97,10 @@ class RepeaterPage extends Page {
 		if(strpos($grandparentName, $prefix) === 0) {
 			// determine field from grandparent name in format: for-field-1234
 			$forID = (int) substr($grandparentName, strlen($prefix));
-			$this->forField = wire('fields')->get($forID); 
+			$this->forField = $this->wire('fields')->get($forID); 
 		}
 
-		return $this->forPage;
+		return $this->forField;
 	}
 
 	/**
@@ -108,8 +112,18 @@ class RepeaterPage extends Page {
 	 *
 	 */
 	public function isPublic() {
-		if($this->hasStatus(Page::statusUnpublished)) return false;
+		if($this->isUnpublished()) return false;
 		return $this->getForPage()->isPublic();
+	}
+
+	/**
+	 * Is this a ready page?
+	 * 
+	 * @return bool
+	 * 
+	 */
+	public function isReady() {
+		return $this->isUnpublished() && $this->isHidden();
 	}
 }
 

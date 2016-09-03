@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Fuel
@@ -7,10 +7,10 @@
  * The objects contained in fuel provide access to the ProcessWire API. For instance, $pages,
  * $users, $fields, and so on. The fuel is required to keep the system running, so to speak.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property ProcessWire $wire
@@ -38,9 +38,22 @@
  * @property Fuel $fuel
  *
  */
-class Fuel implements IteratorAggregate {
+class Fuel implements \IteratorAggregate {
 
+	/**
+	 * Fuel items indexed by name
+	 * 
+	 * @var array
+	 * 
+	 */
 	protected $data = array();
+
+	/**
+	 * Array where name is item name, and value is bool as to whether it's locked or not
+	 * 
+	 * @var array
+	 * 
+	 */
 	protected $lock = array();
 
 	/**
@@ -81,7 +94,7 @@ class Fuel implements IteratorAggregate {
 	}
 
 	public function getIterator() {
-		return new ArrayObject($this->data); 
+		return new \ArrayObject($this->data); 
 	}
 
 	public function getArray() {

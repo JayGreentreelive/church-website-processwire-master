@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireSaveableItems
@@ -6,10 +6,7 @@
  * Wire Data Access Object, provides reusable capability for loading, saving, creating, deleting, 
  * and finding items of descending class-defined types. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @method WireArray load(WireArray $items, $selectors = null);
@@ -18,7 +15,7 @@
  *
  */
 
-abstract class WireSaveableItems extends Wire implements IteratorAggregate {
+abstract class WireSaveableItems extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Return the WireArray that this DAO stores it's items in
@@ -64,7 +61,9 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			// iterable selectors
 		} else if($selectors && is_string($selectors)) {
 			// selector string, convert to iterable selectors
-			$selectors = new Selectors($selectors); 
+			$selectorString = $selectors;
+			$selectors = $this->wire(new Selectors()); 
+			$selectors->init($selectorString);
 
 		} else {
 			// nothing provided, load all assumed
@@ -126,7 +125,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			$fields[$k] = "$table.$v"; 
 		}
 
-		$query = new DatabaseQuerySelect();
+		$query = $this->wire(new DatabaseQuerySelect());
 		$query->select($fields)->from($table);
 		if($sort = $this->getSort()) $query->orderby($sort); 
 		$this->getLoadQuerySelectors($selectors, $query); 
@@ -153,8 +152,9 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		$query = $database->prepare($sql);	
 		$query->execute();
 		
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			$item = $this->makeBlankItem();
+			$this->wire($item);
 			foreach($row as $field => $value) {
 				if($field == 'data') {
 					if($value) $value = $this->decodeData($value);
@@ -219,7 +219,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		if($id) {
 			
 			$query = $database->prepare("UPDATE $sql WHERE id=:id");
-			$query->bindValue(":id", $id, PDO::PARAM_INT);
+			$query->bindValue(":id", $id, \PDO::PARAM_INT);
 			$result = $query->execute();
 			
 		} else {
@@ -266,7 +266,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		$table = $database->escapeTable($this->getTable());
 		
 		$query = $database->prepare("DELETE FROM `$table` WHERE id=:id LIMIT 1"); 
-		$query->bindValue(":id", $id, PDO::PARAM_INT); 
+		$query->bindValue(":id", $id, \PDO::PARAM_INT); 
 		$result = $query->execute();
 		
 		if($result) {

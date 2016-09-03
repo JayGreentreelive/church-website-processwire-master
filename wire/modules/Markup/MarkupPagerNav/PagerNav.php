@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PagerNav support classes for MarkupPagerNav module
@@ -6,12 +6,9 @@
  * Provides capability for determining pagination information
  *
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
- * 
+ *
  *
  */
 
@@ -63,7 +60,7 @@ class PagerNavItem {
  * }
  *
  */
-class PagerNav implements IteratorAggregate {
+class PagerNav implements \IteratorAggregate {
 
 	protected $totalPages = 0;
 	protected $currentPage = 0;
@@ -246,7 +243,7 @@ class PagerNav implements IteratorAggregate {
 		return $this->pager; 	
 	}
 
-	public function getIterator() { return new ArrayObject($this->getPager()); }
+	public function getIterator() { return new \ArrayObject($this->getPager()); }
 	public function getFirstItem() { return $this->firstItem; }
 	public function getItemsPerPage() { return $this->itemsPerPage; }
 	public function getCurrentPage() { return $this->currentPage; }

@@ -1,14 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireSaveableItemsLookup
  *
  * Provides same functionality as WireSaveableItems except that this class includes joining/modification of a related lookup table
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
- * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -71,7 +68,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 		$stmt->execute();
 		$lookupField = $this->getLookupField();
 
-		while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
 
 			$item = $this->makeBlankItem();
 			$lookupValue = $row[$lookupField];
@@ -130,7 +127,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 
 		if($item_id) {
 			$query = $database->prepare("DELETE FROM $lookupTable WHERE {$table}_id=:item_id");
-			$query->bindValue(":item_id", $item_id, PDO::PARAM_INT);
+			$query->bindValue(":item_id", $item_id, \PDO::PARAM_INT);
 			$query->execute();
 		}
 			
@@ -165,7 +162,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 		$table = $database->escapeTable($this->getTable()); 
 		$item_id = (int) $item->id; 
 		$query = $database->prepare("DELETE FROM $lookupTable WHERE {$table}_id=:item_id"); // QA
-		$query->bindValue(":item_id", $item_id, PDO::PARAM_INT);
+		$query->bindValue(":item_id", $item_id, \PDO::PARAM_INT);
 		$query->execute();
 		return parent::___delete($item); 
 	}
