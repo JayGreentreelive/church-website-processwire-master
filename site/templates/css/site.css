@@ -3133,7 +3133,7 @@ span.divider-line
   border-top: 1px solid #717171 !important;
 }
 
-  #churchonline_counter { overflow: none; width: 600px; padding: 1px; display: none; }
+  #churchonline_counter { overflow: none; width: 600px; padding: 3px; display: none; }
   #churchonline_counter .description, #churchonline_counter .time li .label { font-size: 0.8em; }
   #churchonline_counter .time { list-style: none; padding: 0; margin:01px 0 0 0; }
   #churchonline_counter .time li { float: left; padding: 0 10px; text-align: center; }
