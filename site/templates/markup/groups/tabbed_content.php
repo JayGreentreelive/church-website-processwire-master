@@ -1,5 +1,5 @@
 <?php
-
+/*
   if( $page->id == 7605 )
   {
     //$cclass = ' not-full-width-tabs ';
@@ -9,6 +9,7 @@
   {
     $cclass = 'full-width-tabs';
   }
+  */
 ?>
 <div class="row mg-t-md ">
   <div class="col-md-12">

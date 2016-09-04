@@ -26,7 +26,7 @@ echo "<div class='col-md-4 col-md-offset-2'><div id='search-content-form' class=
 echo "<div class='col-md-12'><hr class='thin-hr mg-t-sm2 mg-b-sm'></div>";
 echo "</div>";
 
-echo '<div class="row ">';
+//echo '<div class="row ">';
 
 $series_root = $pages->get("/sermons/");
 $generic_img = $series_root->images->first()->size(640, 360)->url;
@@ -167,13 +167,13 @@ if( count($messages)> 0)
         'separatorItemLabel' => "<a href='#'>&hellip;</a>"
     ));
 
-    echo '</div>';
-    echo "<div class='clearfix'></div>";
+    //echo '</div>';
+    //echo "<div class='clearfix'></div>";
     echo "<div class='row mg-t-md'><div class='col-md-12'>".$pagination."</div></div>";
 }
 
 echo "</div>";
 echo "</div>";
-echo "</div>";
+//echo "</div>";
 
 ?>
