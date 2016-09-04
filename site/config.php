@@ -46,10 +46,10 @@ $config->debug = false;
  * Installer: Database Configuration
  *
  */
-$config->dbHost = 'kelp.arvixe.com';
-$config->dbName = 'cms';
-$config->dbUser = 'higherbo_tccms';
-$config->dbPass = 'Tc2008!1';
+$config->dbHost = 'localhost';
+$config->dbName = 'user';
+$config->dbUser = 'password';
+$config->dbPass = '';
 $config->dbPort = '3306';
 
 /**
