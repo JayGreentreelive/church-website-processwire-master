@@ -2,7 +2,7 @@
     var days, goLive, hours, intervalId, minutes, seconds;
 
     // Your churchonline.org url
-    var churchUrl = "http://fchogv.churchonline.org"
+    var churchUrl = "//thursdaychurch.churchonline.org"
 
     goLive = function() {
       $("#churchonline_counter .time").hide();
