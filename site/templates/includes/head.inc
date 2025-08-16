@@ -127,12 +127,11 @@ if(wire('page')->template == 'home'){
 
      <?php
         $js_top_array = array( 'js/plugins/modernizr/modernizr.min.js',
-                      'js/plugins/jquery/jquery.min.js',
 					  'js/plugins/jquery/live.js' )
     ?>
 
      <script src="<?php echo AIOM::JS( $js_top_array ); ?>"></script>
-
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
       <!--[if lt IE 9]>
           <script type='text/javascript' src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
           <script type='text/javascript' src="//cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.min.js"></script>
